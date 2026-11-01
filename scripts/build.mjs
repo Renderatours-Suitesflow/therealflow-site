@@ -149,7 +149,7 @@ async function youtubeFromFeeds() {
         const link = asArray(en.link).map((l) => l['@href']).find(Boolean) || '';
         return {
           id: vid,
-          title: text(en.title).trim(),
+          title: text(en.title).replace(/\s*#shorts\b/gi, '').trim(),
           date: new Date(text(en.published)).toISOString(),
           description: text(en['media:group']?.['media:description']).trim(),
           short: true,
@@ -166,17 +166,15 @@ async function youtubeFromChannelPage() {
   const html = await fetchText(config.links.youtube.replace(/\/$/, '') + '/shorts');
   const seen = new Set();
   const out = [];
-  const re = /"reelWatchEndpoint":\{"videoId":"([\w-]{11})"/g;
-  let m;
-  while ((m = re.exec(html))) {
-    const vid = m[1];
-    if (seen.has(vid)) continue;
+  // Each Short is one "shortsLockupViewModel" block holding its title and its videoId.
+  const blocks = html.split('"shortsLockupViewModel"').slice(1);
+  for (const b of blocks) {
+    const vid = (b.match(/"videoId":"([\w-]{11})"/) || [])[1];
+    if (!vid || seen.has(vid)) continue;
     seen.add(vid);
-    // the title sits in the same lockup, just before the endpoint
-    const chunk = html.slice(Math.max(0, m.index - 4000), m.index);
-    const t = [...chunk.matchAll(/"primaryText":\{"content":"((?:[^"\\]|\\.)*)"/g)].pop()
-      || [...chunk.matchAll(/"accessibilityText":"((?:[^"\\]|\\.)*?), [\d.,KM]+ views/g)].pop();
-    const title = t ? JSON.parse(`"${t[1]}"`) : '';
+    const t = b.match(/"primaryText":\{"content":"((?:[^"\\]|\\.)*)"/)
+      || b.match(/"accessibilityText":"((?:[^"\\]|\\.)*?), [\d.,KM]+ views/);
+    const title = t ? JSON.parse(`"${t[1]}"`).replace(/\s*#shorts\b/gi, '').trim() : '';
     out.push({ id: vid, title, short: true, dateGuessed: true });
   }
   if (!out.length) throw new Error('no Shorts found on the channel page');
