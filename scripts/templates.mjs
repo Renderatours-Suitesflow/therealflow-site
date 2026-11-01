@@ -1,5 +1,6 @@
 // HTML templates for therealflow.tv. Plain functions returning strings, no framework.
 import { HOME_FAQ, GLOSSARY } from './content.mjs';
+import { marked } from 'marked';
 
 const esc = (s = '') => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -319,38 +320,37 @@ export function podcastPage(ctx) {
 
 export function episodePage(ctx, ep) {
   const { episodes, config } = ctx;
+  const art = ep.article;
   const i = episodes.indexOf(ep);
   const more = episodes.filter((e) => e !== ep).slice(Math.max(0, i - 1), Math.max(0, i - 1) + 4);
-  const desc = ctx.excerpt(ep.notes, 155);
+  const desc = art?.description || ctx.excerpt(ep.notes, 155);
+  const url = `${config.siteUrl}/podcast/${ep.slug}/`;
   const schema = [{
     '@context': 'https://schema.org', '@type': 'PodcastEpisode', name: ep.title, datePublished: ep.date,
-    description: desc, url: `${config.siteUrl}/podcast/${ep.slug}/`, image: ep.image,
+    description: desc, url, image: ep.image,
     timeRequired: ep.duration ? `PT${Math.round(ep.duration / 60)}M` : undefined,
     associatedMedia: ep.audio ? { '@type': 'MediaObject', contentUrl: ep.audio } : undefined,
     partOfSeries: { '@type': 'PodcastSeries', name: 'TheRealFlow', url: config.siteUrl + '/podcast/' },
-    author: { '@type': 'Person', name: config.host.name },
-  }];
+    author: { '@id': config.siteUrl + '/#mario' },
+  }, ...(art ? articleSchema(config, art, url, ep.date, ep.image) : [])];
   const body = `
 <article class="episode">
   <header class="wrap narrow episode__head">
-    <a class="back" href="/podcast/">All episodes</a>
-    <h1>${esc(ep.title)}</h1>
-    <p class="meta"><time datetime="${ep.date}">${fmtDate(ep.date)}</time><span>${fmtDur(ep.duration)}</span></p>
+    <p class="kicker"><a href="/podcast/">TheRealFlow podcast</a></p>
+    <h1>${esc(art?.title || ep.title)}</h1>
+    <p class="meta"><time datetime="${ep.date}">${fmtDate(ep.date)}</time><span>${fmtDur(ep.duration)} listen</span>${art ? `<span>${readMins(art)} min read</span>` : ''}</p>
     ${audio(ep)}
     <div class="actions">
       ${ep.spotify || config.links.spotify ? btn(ep.spotify || config.links.spotify, 'Open in Spotify', { variant: 'ghost', ext: true, icon: 'spotify' }) : ''}
     </div>
   </header>
-  <div class="wrap narrow prose">${ep.notes || '<p>Show notes are on the way.</p>'}</div>
+  ${art ? articleBody(art) : `<div class="wrap narrow prose">${ep.notes || '<p>Show notes are on the way.</p>'}</div>`}
   <footer class="wrap narrow episode__foot">
-    <div class="byline">
-      <img src="${esc(config.host.portrait)}" alt="" width="56" height="56" loading="lazy">
-      <p>Hosted by <a href="/about/">Mario Comando</a>, co-founder of <a href="${esc(config.host.companyUrl)}" target="_blank" rel="noopener">${esc(config.host.company)}</a>.</p>
-    </div>
+    ${byline(config)}
     ${more.length ? `<h2 class="h-small">More episodes</h2><ul class="eplist eplist--tight">${more.map((e) => episodeRow(e, ctx)).join('')}</ul>` : ''}
   </footer>
 </article>`;
-  return layout(ctx, { title: ep.title, description: desc, path: `/podcast/${ep.slug}/`, body, schema, image: ep.image, active: '/podcast/', crumbs: [['/podcast/', 'Podcast'], [`/podcast/${ep.slug}/`, ep.title]], ogType: 'article', published: ep.date });
+  return layout(ctx, { title: art?.seoTitle || art?.title || ep.title, description: desc, path: `/podcast/${ep.slug}/`, body, schema, image: ep.image, active: '/podcast/', crumbs: [['/podcast/', 'Podcast'], [`/podcast/${ep.slug}/`, ep.title]], ogType: 'article', published: ep.date, modified: art?.written });
 }
 
 export function trackerPage(ctx) {
@@ -479,16 +479,18 @@ const isoDur = (s) => `PT${Math.floor(s / 60)}M${s % 60}S`;
 // ---------- Video page ----------
 export function videoPage(ctx, v) {
   const { config, videos, episodes } = ctx;
+  const art = v.article;
   const i = videos.indexOf(v);
   const more = videos.filter((x) => x !== v).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 6);
-  const desc = v.description ? ctx.excerpt(v.description, 155) : `${v.title}. A one-minute explainer on off-plan and presale real estate by Mario Comando.`;
+  const desc = art?.description || (v.description ? ctx.excerpt(v.description, 155) : `${v.title}. A one-minute explainer on off-plan and presale real estate by Mario Comando.`);
+  const url = `${config.siteUrl}/videos/${v.slug}/`;
   const schema = [{
-    '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: v.description || desc,
+    '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: art?.answer || v.description || desc,
     thumbnailUrl: [`https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg`, thumb(v.id)], uploadDate: v.date,
     duration: v.seconds ? isoDur(v.seconds) : undefined,
-    embedUrl: `https://www.youtube.com/embed/${v.id}`, contentUrl: ytUrl(v), url: `${config.siteUrl}/videos/${v.slug}/`,
+    embedUrl: `https://www.youtube.com/embed/${v.id}`, contentUrl: ytUrl(v), url,
     author: { '@id': config.siteUrl + '/#mario' }, inLanguage: 'en',
-  }];
+  }, ...(art ? articleSchema(config, art, url, v.dateGuessed ? art.written : v.date, `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`) : [])];
   const body = `
 <article class="video-page">
   <div class="wrap video-page__in">
@@ -496,23 +498,49 @@ export function videoPage(ctx, v) {
       <div class="phone__screen">${videoCard(v, { large: true })}</div>
     </figure>
     <div class="video-page__copy">
-      <h1>${esc(v.title)}</h1>
-      ${v.dateGuessed ? '' : `<p class="meta"><time datetime="${v.date}">${fmtDate(v.date)}</time>${v.seconds ? `<span>${v.seconds} sec</span>` : ''}</p>`}
-      ${v.description ? `<div class="prose prose--video">${v.description.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>` : `<p class="lede">A one-minute explainer on how off-plan real estate works, from every side of the deal.</p>`}
+      <p class="kicker"><a href="/videos/">Video</a>${v.seconds ? ` · ${v.seconds} seconds` : ''}</p>
+      <h1>${esc(art?.title || v.title)}</h1>
+      ${art?.answer ? `<div class="answer"><p class="answer__label">Short answer</p><p>${esc(art.answer)}</p></div>` : (v.description ? `<div class="prose prose--video">${v.description.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>` : `<p class="lede">A one-minute explainer on how off-plan real estate works, from every side of the deal.</p>`)}
       <div class="actions">
         ${btn(ytUrl(v), 'Watch on YouTube', { ext: true, icon: 'youtube' })}
         ${btn(config.links.tiktok, 'Follow on TikTok', { variant: 'ghost', ext: true, icon: 'tiktok' })}
       </div>
-      <div class="byline">
-        <img src="${esc(config.host.portrait)}" alt="" width="56" height="56" loading="lazy">
-        <p>By <a href="/about/">Mario Comando</a>, 20 years working with real estate developers.</p>
-      </div>
+      ${art ? '' : byline(config)}
     </div>
   </div>
+  ${art ? `${articleBody(art, { skipAnswer: true })}<div class="wrap narrow">${byline(config)}</div>` : ''}
   ${more.length ? `<div class="wrap video-more"><h2 class="h-section">More videos</h2><div class="rail">${more.map((x) => videoCard(x)).join('')}</div></div>` : ''}
   ${episodes[0] ? `<div class="wrap narrow video-more"><h2 class="h-small">Latest podcast episodes</h2><ul class="eplist eplist--tight">${episodes.slice(0, 3).map((e) => episodeRow(e, ctx)).join('')}</ul></div>` : ''}
 </article>`;
-  return layout(ctx, { title: v.title, description: desc, path: `/videos/${v.slug}/`, body, schema, image: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`, active: '/videos/', crumbs: [['/videos/', 'Videos'], [`/videos/${v.slug}/`, v.title]], ogType: 'video.other', published: v.dateGuessed ? undefined : v.date });
+  return layout(ctx, { title: art?.seoTitle || art?.title || v.title, description: desc, path: `/videos/${v.slug}/`, body, schema, image: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`, active: '/videos/', crumbs: [['/videos/', 'Videos'], [`/videos/${v.slug}/`, art?.title || v.title]], ogType: 'article', published: v.dateGuessed ? art?.written : v.date, modified: art?.written });
+}
+
+// ---------- Articles ----------
+const words = (art) => [art.answer, art.body, ...(art.takeaways || []), ...(art.faq || []).flat()].join(' ').split(/\s+/).length;
+const readMins = (art) => Math.max(1, Math.round(words(art) / 220));
+const byline = (config) => `<div class="byline">
+      <img src="${esc(config.host.portrait)}" alt="" width="56" height="56" loading="lazy">
+      <p>By <a href="/about/">Mario Comando</a>, 20 years working with real estate developers. Co-founder of <a href="${esc(config.host.companyUrl)}" target="_blank" rel="noopener">${esc(config.host.company)}</a>.</p>
+    </div>`;
+function articleBody(art, { skipAnswer = false } = {}) {
+  return `
+  <div class="wrap narrow article">
+    ${!skipAnswer && art.answer ? `<div class="answer"><p class="answer__label">Short answer</p><p>${esc(art.answer)}</p></div>` : ''}
+    <div class="prose">${marked.parse(art.body || '')}</div>
+    ${art.takeaways?.length ? `<aside class="takeaways"><h2>Key takeaways</h2><ul>${art.takeaways.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></aside>` : ''}
+    ${art.faq?.length ? `<section class="article-faq"><h2>Questions people ask</h2><div class="faq">${art.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div></section>` : ''}
+  </div>`;
+}
+function articleSchema(config, art, url, date, image) {
+  const out = [{
+    '@context': 'https://schema.org', '@type': 'BlogPosting', headline: art.title, description: art.description,
+    abstract: art.answer, datePublished: date, dateModified: art.written || date, url, mainEntityOfPage: url, image,
+    author: { '@id': config.siteUrl + '/#mario' }, publisher: { '@id': config.siteUrl + '/#org' },
+    keywords: (art.keywords || []).join(', ') || undefined, wordCount: words(art), inLanguage: 'en',
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.answer', '.takeaways'] },
+  }];
+  if (art.faq?.length) out.push(faqSchema(art.faq));
+  return out;
 }
 
 // ---------- Tracker project page ----------

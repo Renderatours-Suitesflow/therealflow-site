@@ -329,3 +329,24 @@ p { margin: 0 0 1em; }
 .guide { display: grid; gap: 2px; margin-top: 40px; padding-left: 16px; border-left: 2px solid var(--gold); text-decoration: none; color: var(--ink-2); font-size: 0.97rem; line-height: 1.45; max-width: 44ch; }
 .guide__name { font-weight: 500; color: var(--ink); }
 .guide:hover .guide__name { color: var(--gold-text); }
+
+/* Articles */
+.kicker { font-size: 0.9rem; color: var(--muted); margin: 0 0 10px; }
+.kicker a { text-decoration: none; border-bottom: 1px solid var(--gold); color: var(--ink-2); }
+.answer { background: var(--cream); border-left: 3px solid var(--gold); padding: 18px 22px; margin: 20px 0 8px; border-radius: 0 var(--radius) var(--radius) 0; }
+.answer p { margin: 0; font-size: 1.08rem; color: var(--ink); }
+.answer .answer__label { font-size: 0.82rem; font-weight: 500; color: var(--gold-text); margin-bottom: 6px; }
+.article { margin-top: 56px; }
+.article .prose { margin-top: 0; }
+.article .prose h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); margin: 1.6em 0 .5em; }
+.article .prose h2:first-child { margin-top: 0; }
+.article .prose strong { color: var(--ink); font-weight: 600; }
+.takeaways { margin: 48px 0; padding: 28px 30px; border: 1px solid var(--line); border-radius: var(--radius); }
+.takeaways h2 { font-size: 1.6rem; margin-bottom: 14px; }
+.takeaways ul { margin: 0; padding-left: 1.1em; }
+.takeaways li { margin: 0 0 10px; color: var(--ink-2); }
+.takeaways li::marker { color: var(--gold); }
+.article-faq { margin: 48px 0 40px; }
+.article-faq h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 8px; }
+.video-page .article { margin-top: 64px; }
+.episode .article { margin-top: 32px; }

@@ -242,14 +242,18 @@ async function loadVideos() {
     }
     if (n) console.log(`Video details tried for ${n} videos`);
   }
-  const videos = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
+  const all = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
+  // the same video uploaded twice gets one page (the older upload)
+  const seenTitle = new Map();
+  for (const v of all.slice().reverse()) { const k = slugify(v.title); if (!seenTitle.has(k)) seenTitle.set(k, v.id); }
+  const videos = all.filter((v) => !v.title || seenTitle.get(slugify(v.title)) === v.id);
   const used = new Set();
   for (const v of videos.slice().reverse()) {
     let s = v.slug || slugify(v.title) || v.id.toLowerCase();
     if (used.has(s)) s = `${s}-${v.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
     v.slug = s; used.add(s);
   }
-  await writeFile(archiveFile, JSON.stringify(videos, null, 2) + '\n');
+  await writeFile(archiveFile, JSON.stringify(all, null, 2) + '\n');
   return videos;
 }
 
@@ -271,6 +275,11 @@ await cp(path.join(ROOT, 'assets'), path.join(DIST, 'assets'), { recursive: true
   const used = new Set();
   for (const p of tracker.projects) { let s = slugify(p.name); while (used.has(s)) s += '-2'; p.slug = s; used.add(s); }
 }
+// Articles written from each video's and episode's own content
+async function loadArticle(file) { try { return JSON.parse(await readFile(file, 'utf8')); } catch { return null; } }
+for (const v of videos) v.article = await loadArticle(path.join(ROOT, 'content/videos', `${v.id}.json`));
+for (const e of episodes) e.article = await loadArticle(path.join(ROOT, 'content/podcast', `${e.slug}.json`));
+console.log(`Articles: ${videos.filter((v) => v.article).length} videos, ${episodes.filter((e) => e.article).length} episodes`);
 const ctx = { config, show, episodes, videos, tracker, excerpt, plain };
 
 await page('index.html', T.home(ctx));
