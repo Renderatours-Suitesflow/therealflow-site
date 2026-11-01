@@ -1,0 +1,16 @@
+{
+  "name": "therealflow-site",
+  "private": true,
+  "type": "module",
+  "description": "therealflow.tv — rebuilt automatically from the YouTube and podcast feeds",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:offline": "OFFLINE=1 node scripts/build.mjs"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

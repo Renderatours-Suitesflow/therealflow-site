@@ -1,0 +1,434 @@
+// HTML templates for therealflow.tv. Plain functions returning strings, no framework.
+
+const esc = (s = '') => String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const fmtShort = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const fmtDur = (s) => {
+  if (!s) return '';
+  const m = Math.round(s / 60);
+  return m < 1 ? `${s} sec` : `${m} min`;
+};
+const thumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const ytUrl = (v) => v.short ? `https://www.youtube.com/shorts/${v.id}` : `https://www.youtube.com/watch?v=${v.id}`;
+
+const ICONS = {
+  arrow: '<svg class="i-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8zM9.7 15.1V8.9l5.8 3.1z"/></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 2h-3.3v13.2a2.9 2.9 0 1 1-2-2.8V9a6.2 6.2 0 1 0 5.3 6.1V8.6a7.8 7.8 0 0 0 4.4 1.4V6.7a4.5 4.5 0 0 1-4.4-4.7z"/></svg>',
+  spotify: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zm4.8 15.2a.7.7 0 0 1-1 .2c-2.7-1.6-6-2-10-1.1a.7.7 0 0 1-.3-1.4c4.3-1 8-.6 11 1.3.3.2.4.6.3 1zm1.3-2.9a.9.9 0 0 1-1.2.3c-3-1.9-7.7-2.4-11.3-1.3a.9.9 0 1 1-.5-1.7c4.1-1.2 9.2-.6 12.7 1.5.4.3.5.8.3 1.2zm.1-3c-3.7-2.2-9.8-2.4-13.3-1.3a1 1 0 1 1-.6-2c4.1-1.2 10.8-1 15 1.6a1 1 0 0 1-1.1 1.7z"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a9 9 0 0 0-3.4 17.3l.3-1.6A7.4 7.4 0 1 1 15 17.7l.4 1.6A9 9 0 0 0 12 2zm0 4a5 5 0 0 0-2.4 9.4l.3-1.7a3.4 3.4 0 1 1 4.2 0l.3 1.7A5 5 0 0 0 12 6zm0 4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2zm-1 4.6-.8 7.4h3.6l-.8-7.4z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 22v-8.2h2.8l.4-3.2h-3.2V8.5c0-.9.3-1.6 1.6-1.6h1.7V4.1a23 23 0 0 0-2.5-.1c-2.5 0-4.2 1.5-4.2 4.3v2.4H7.3v3.2h2.8V22z"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4v11H3zm7 0h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6.1v5.3h-4v-4.7c0-1.1 0-2.6-1.6-2.6s-1.9 1.2-1.9 2.5v4.8h-4z"/></svg>',
+};
+
+const btn = (href, label, { variant = 'solid', ext = false, icon = 'arrow' } = {}) =>
+  `<a class="sf-btn sf-btn--${variant}" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span>${esc(label)}</span>${ICONS[icon] || ''}</a>`;
+
+function channelLinks(config, { compact = false } = {}) {
+  const L = config.links;
+  const items = [
+    ['youtube', 'YouTube', L.youtube],
+    ['tiktok', 'TikTok', L.tiktok],
+    ['spotify', 'Spotify', L.spotify],
+    ['apple', 'Apple Podcasts', L.apple],
+    ['facebook', 'Facebook', L.facebook],
+    ['linkedin', 'LinkedIn', L.linkedin],
+  ].filter(([, , href]) => href);
+  return `<ul class="channels${compact ? ' channels--compact' : ''}">${items.map(([k, name, href]) =>
+    `<li><a href="${esc(href)}" target="_blank" rel="noopener" aria-label="TheRealFlow on ${name}">${ICONS[k]}<span>${name}</span></a></li>`).join('')}</ul>`;
+}
+
+function layout(ctx, { title, description, path = '/', body, schema = [], image, active = '', extraHead = '' }) {
+  const { config } = ctx;
+  const fullTitle = title ? `${title} | ${config.siteName}` : `${config.siteName}: How off-plan real estate really works`;
+  const desc = description || config.description;
+  const url = config.siteUrl + path;
+  const ogImage = image || ctx.show?.image || config.host.portrait;
+  const nav = [['/videos/', 'Videos'], ['/podcast/', 'Podcast'], ['/tracker/', 'Tracker'], ['/about/', 'About']];
+  const baseSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: config.host.name,
+    url: config.siteUrl + '/about/',
+    image: config.host.portrait,
+    jobTitle: 'Co-founder',
+    worksFor: { '@type': 'Organization', name: config.host.company, url: config.host.companyUrl },
+    sameAs: Object.values(config.links).filter(Boolean),
+  };
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(fullTitle)}</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${esc(url)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${esc(config.siteName)}">
+<meta property="og:title" content="${esc(fullTitle)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:image" content="${esc(ogImage)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+${extraHead}
+${[baseSchema, ...schema].map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <div class="wrap site-head__in">
+    <a class="wordmark" href="/" aria-label="TheRealFlow home">The<b>Real</b>Flow</a>
+    <nav aria-label="Main">
+      <ul>${nav.map(([h, l]) => `<li><a href="${h}"${active === h ? ' aria-current="page"' : ''}>${l}</a></li>`).join('')}</ul>
+    </nav>
+  </div>
+</header>
+<main id="main">
+${body}
+</main>
+<footer class="site-foot">
+  <div class="wrap site-foot__in">
+    <div>
+      <a class="wordmark wordmark--foot" href="/">The<b>Real</b>Flow</a>
+      <p class="foot-tag">${esc(config.tagline)}.</p>
+    </div>
+    ${channelLinks(config, { compact: true })}
+  </div>
+  <div class="wrap foot-legal">
+    <p>Educational content only. Nothing here is financial or legal advice. Off-plan real estate carries risk, including total loss.</p>
+    <p>© ${new Date().getUTCFullYear()} ${esc(config.host.name)}</p>
+  </div>
+</footer>
+<dialog class="player" id="player" aria-label="Video player">
+  <button class="player__close" type="button" aria-label="Close video">×</button>
+  <div class="player__frame"></div>
+</dialog>
+<script src="/assets/site.js" defer></script>
+</body>
+</html>`;
+}
+
+// A vertical video card. Clicking opens the on-page player; the link still works without JS.
+const videoCard = (v, { large = false } = {}) => `
+<a class="vcard${large ? ' vcard--large' : ''}" href="${esc(ytUrl(v))}" data-video="${esc(v.id)}" target="_blank" rel="noopener">
+  <span class="vcard__media">
+    <img src="${thumb(v.id)}" alt="" loading="lazy" width="480" height="360">
+    <span class="vcard__play">${ICONS.play}</span>
+  </span>
+  <span class="vcard__title">${esc(v.title)}</span>
+  <span class="vcard__date">${fmtShort(v.date)}</span>
+</a>`;
+
+const episodeRow = (ep, ctx) => `
+<li class="eprow">
+  <a href="/podcast/${esc(ep.slug)}/">
+    <span class="eprow__date">${fmtShort(ep.date)}</span>
+    <span class="eprow__title">${esc(ep.title)}</span>
+    <span class="eprow__ex">${esc(ctx.excerpt(ep.notes, 150))}</span>
+    <span class="eprow__dur">${fmtDur(ep.duration)}</span>
+  </a>
+</li>`;
+
+const audio = (ep) => ep.audio ? `<audio class="audio" controls preload="none" src="${esc(ep.audio)}"><a href="${esc(ep.audio)}">Download the episode</a></audio>` : '';
+
+// ---------- Pages ----------
+export function home(ctx) {
+  const { config, videos, episodes, tracker } = ctx;
+  const latestV = videos[0];
+  const latestE = episodes[0];
+  const markets = [...new Set(tracker.projects.map((p) => p.market))];
+  const body = `
+<section class="hero">
+  <div class="wrap hero__in">
+    <div class="hero__copy">
+      <h1>How off-plan real estate really works.</h1>
+      <p class="lede">One-minute videos and a weekday podcast for developers, brokers, investors and buyers. From the vision to someone’s home.</p>
+      <div class="actions">
+        ${btn('/podcast/', 'Listen to the podcast')}
+        ${btn(config.links.tiktok, 'Follow on TikTok', { variant: 'ghost', ext: true, icon: 'tiktok' })}
+      </div>
+      <a class="host" href="/about/">
+        <img src="${esc(config.host.portrait)}" alt="" width="52" height="52">
+        <span>Hosted by <b>Mario</b>, who has spent 20 years working with real estate developers.</span>
+      </a>
+    </div>
+    ${latestV ? `
+    <figure class="phone">
+      <div class="phone__screen">${videoCard(latestV, { large: true })}</div>
+      <figcaption>Newest video, ${fmtDate(latestV.date)}</figcaption>
+    </figure>` : ''}
+  </div>
+</section>
+
+${latestE ? `
+<section class="band band--parchment">
+  <div class="wrap episode-feature">
+    <div class="episode-feature__main">
+      <h2 class="h-section">New on the podcast</h2>
+      <div class="ep-hero">
+        ${latestE.image ? `<img class="ep-hero__art" src="${esc(latestE.image)}" alt="TheRealFlow podcast cover" width="168" height="168" loading="lazy">` : ''}
+        <div>
+          <p class="meta"><time datetime="${latestE.date}">${fmtDate(latestE.date)}</time><span>${fmtDur(latestE.duration)}</span></p>
+          <h3 class="ep-hero__title"><a href="/podcast/${esc(latestE.slug)}/">${esc(latestE.title)}</a></h3>
+          <p class="ep-hero__ex">${esc(ctx.excerpt(latestE.notes, 220))}</p>
+          ${audio(latestE)}
+        </div>
+      </div>
+    </div>
+    <aside class="episode-feature__side" aria-label="Recent episodes">
+      <h2 class="h-small">Recent episodes</h2>
+      <ul class="eplist eplist--tight">${episodes.slice(1, 5).map((e) => episodeRow(e, ctx)).join('')}</ul>
+      <a class="text-link" href="/podcast/">All episodes</a>
+    </aside>
+  </div>
+</section>` : ''}
+
+${videos.length > 1 ? `
+<section class="band">
+  <div class="wrap">
+    <div class="row-head">
+      <h2 class="h-section">Watch in a minute</h2>
+      <a class="text-link" href="/videos/">All videos</a>
+    </div>
+    <div class="rail">${videos.slice(1, 9).map((v) => videoCard(v)).join('')}</div>
+  </div>
+</section>` : ''}
+
+<section class="band band--tracker">
+  <div class="wrap tracker-teaser">
+    <div>
+      <h2 class="h-display">Where the next ${esc(tracker.threshold)} is rising.</h2>
+      <p class="lede">A live map of ${tracker.projects.length} ultra-luxury developments in ${markets.length} markets. Every figure links to its source.</p>
+      ${btn('/tracker/', 'Open the tracker')}
+    </div>
+    <ul class="market-list" aria-label="Markets tracked">${markets.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap about-strip">
+    <img src="${esc(config.host.portrait)}" alt="Mario Comando" width="220" height="220" loading="lazy">
+    <div>
+      <h2 class="h-section">Who is Mario</h2>
+      <p>Mario has spent two decades next to the developers who sell homes before they exist. TheRealFlow explains that world from every side of the deal, so developers sell with more certainty and buyers invest with open eyes.</p>
+      <p class="quiet">Mario is also the co-founder of <a href="${esc(config.host.companyUrl)}" target="_blank" rel="noopener">${esc(config.host.company)}</a>, which builds unit-by-unit virtual tours for off-plan projects.</p>
+      <a class="text-link" href="/about/">More about Mario</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band--follow">
+  <div class="wrap">
+    <h2 class="h-section">Follow along</h2>
+    ${channelLinks(config)}
+  </div>
+</section>`;
+  return layout(ctx, { path: '/', body, active: '/' });
+}
+
+export function videosPage(ctx) {
+  const { videos, config } = ctx;
+  const body = `
+<section class="page-head">
+  <div class="wrap">
+    <h1>Videos</h1>
+    <p class="lede">Off-plan real estate in one minute or less. A new one every day.</p>
+    <div class="actions">${btn(config.links.youtube, 'Subscribe on YouTube', { ext: true, icon: 'youtube' })}${btn(config.links.tiktok, 'Follow on TikTok', { variant: 'ghost', ext: true, icon: 'tiktok' })}</div>
+  </div>
+</section>
+<section class="band band--tight">
+  <div class="wrap">
+    ${videos.length ? `<div class="vgrid">${videos.map((v) => videoCard(v)).join('')}</div>`
+      : `<p class="empty">The first videos appear here as soon as they are on YouTube.</p>`}
+  </div>
+</section>`;
+  return layout(ctx, { title: 'Videos', description: 'Short videos on how off-plan and presale real estate works, for developers, brokers, investors and buyers.', path: '/videos/', body, active: '/videos/' });
+}
+
+export function podcastPage(ctx) {
+  const { episodes, show, config } = ctx;
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'PodcastSeries', name: show.title || 'TheRealFlow',
+    description: show.description, url: config.siteUrl + '/podcast/', image: show.image, webFeed: config.feeds.podcastRss,
+    author: { '@type': 'Person', name: config.host.name },
+  }];
+  const body = `
+<section class="page-head page-head--podcast">
+  <div class="wrap podcast-head">
+    ${show.image ? `<img src="${esc(show.image)}" alt="TheRealFlow podcast cover" width="200" height="200">` : ''}
+    <div>
+      <h1>The podcast</h1>
+      <p class="lede">${esc(show.description || config.description)}</p>
+      <div class="actions">
+        ${config.links.spotify ? btn(config.links.spotify, 'Listen on Spotify', { ext: true, icon: 'spotify' }) : ''}
+        ${config.links.apple ? btn(config.links.apple, 'Apple Podcasts', { variant: 'ghost', ext: true, icon: 'apple' }) : ''}
+      </div>
+    </div>
+  </div>
+</section>
+<section class="band band--tight">
+  <div class="wrap narrow">
+    ${episodes.length ? `<ul class="eplist">${episodes.map((e) => episodeRow(e, ctx)).join('')}</ul>`
+      : `<p class="empty">Episodes appear here as soon as they are published.</p>`}
+  </div>
+</section>`;
+  return layout(ctx, { title: 'Off-plan real estate podcast', description: show.description, path: '/podcast/', body, schema, active: '/podcast/' });
+}
+
+export function episodePage(ctx, ep) {
+  const { episodes, config } = ctx;
+  const i = episodes.indexOf(ep);
+  const more = episodes.filter((e) => e !== ep).slice(Math.max(0, i - 1), Math.max(0, i - 1) + 4);
+  const desc = ctx.excerpt(ep.notes, 155);
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'PodcastEpisode', name: ep.title, datePublished: ep.date,
+    description: desc, url: `${config.siteUrl}/podcast/${ep.slug}/`, image: ep.image,
+    timeRequired: ep.duration ? `PT${Math.round(ep.duration / 60)}M` : undefined,
+    associatedMedia: ep.audio ? { '@type': 'MediaObject', contentUrl: ep.audio } : undefined,
+    partOfSeries: { '@type': 'PodcastSeries', name: 'TheRealFlow', url: config.siteUrl + '/podcast/' },
+    author: { '@type': 'Person', name: config.host.name },
+  }];
+  const body = `
+<article class="episode">
+  <header class="wrap narrow episode__head">
+    <a class="back" href="/podcast/">All episodes</a>
+    <h1>${esc(ep.title)}</h1>
+    <p class="meta"><time datetime="${ep.date}">${fmtDate(ep.date)}</time><span>${fmtDur(ep.duration)}</span></p>
+    ${audio(ep)}
+    <div class="actions">
+      ${ep.spotify || config.links.spotify ? btn(ep.spotify || config.links.spotify, 'Open in Spotify', { variant: 'ghost', ext: true, icon: 'spotify' }) : ''}
+    </div>
+  </header>
+  <div class="wrap narrow prose">${ep.notes || '<p>Show notes are on the way.</p>'}</div>
+  <footer class="wrap narrow episode__foot">
+    <div class="byline">
+      <img src="${esc(config.host.portrait)}" alt="" width="56" height="56" loading="lazy">
+      <p>Hosted by <a href="/about/">Mario Comando</a>, co-founder of <a href="${esc(config.host.companyUrl)}" target="_blank" rel="noopener">${esc(config.host.company)}</a>.</p>
+    </div>
+    ${more.length ? `<h2 class="h-small">More episodes</h2><ul class="eplist eplist--tight">${more.map((e) => episodeRow(e, ctx)).join('')}</ul>` : ''}
+  </footer>
+</article>`;
+  return layout(ctx, { title: ep.title, description: desc, path: `/podcast/${ep.slug}/`, body, schema, image: ep.image, active: '/podcast/' });
+}
+
+export function trackerPage(ctx) {
+  const { tracker, config } = ctx;
+  const P = tracker.projects;
+  const markets = new Set(P.map((p) => p.market));
+  const regions = [...new Set(P.map((p) => p.region))];
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'Dataset', name: 'Luxury Development Tracker',
+    description: `Ultra-luxury residential developments of ${tracker.threshold} worldwide, each with a dated public source.`,
+    url: config.siteUrl + '/tracker/', dateModified: tracker.updated, creator: { '@type': 'Person', name: config.host.name },
+  }, {
+    '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  }];
+  const fields = [['developer', 'Developer'], ['value', 'Value'], ['status', 'Status'], ['units', 'Units'], ['floors', 'Floors'], ['startingPrice', 'Starting price'], ['unitSize', 'Unit size'], ['completion', 'Completion']];
+  const card = (p) => `
+<li class="proj" data-region="${esc(p.region)}" data-market="${esc(p.market)}">
+  <h3>${esc(p.name)}</h3>
+  <p class="proj__loc">${esc(p.location)}</p>
+  <dl>${fields.filter(([k]) => p[k]).map(([k, l]) => `<div><dt>${l}</dt><dd>${k === 'developer' && p.developerUrl ? `<a href="${esc(p.developerUrl)}" target="_blank" rel="noopener">${esc(p.developer)}</a>` : esc(p[k])}</dd></div>`).join('')}</dl>
+  <a class="text-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Read the source</a>
+</li>`;
+  const body = `
+<section class="page-head page-head--tracker">
+  <div class="wrap">
+    <h1>Where the next ${esc(tracker.threshold)} is rising.</h1>
+    <p class="lede">${P.length} ultra-luxury developments in ${markets.size} markets, each with a public, dated source. Updated ${fmtDate(tracker.updated)}.</p>
+  </div>
+</section>
+<section class="band band--tight">
+  <div class="wrap tracker">
+    <div class="globe-wrap">
+      <div id="globe" class="globe" role="img" aria-label="Globe showing tracked markets"></div>
+      <p class="globe-hint">Drag to turn the globe. Select a market to see its projects.</p>
+    </div>
+    <div class="tracker__list">
+      <div class="filters" role="group" aria-label="Filter by region">
+        <button type="button" class="chip" aria-pressed="true" data-filter="all">All regions</button>
+        ${regions.map((r) => `<button type="button" class="chip" aria-pressed="false" data-filter="${esc(r)}">${esc(r)}</button>`).join('')}
+      </div>
+      <p class="filter-status" aria-live="polite"></p>
+      <ul class="projects">${P.map(card).join('')}</ul>
+    </div>
+  </div>
+</section>
+<section class="band band--parchment">
+  <div class="wrap narrow">
+    <h2 class="h-section">Common questions</h2>
+    <div class="faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>
+  </div>
+</section>
+<section class="band">
+  <div class="wrap narrow cta-quiet">
+    <h2 class="h-section">Building something that belongs on this list?</h2>
+    <p>Mario’s company, ${esc(config.host.company)}, gives buyers a walkable tour of their exact unit and its real view before a single wall goes up.</p>
+    ${btn(config.host.companyUrl + '/request-a-demo/', 'See how SuitesFlow works', { ext: true })}
+  </div>
+</section>`;
+  const extraHead = `
+<script src="/assets/vendor/d3.min.js" defer></script>
+<script src="/assets/vendor/topojson-client.min.js" defer></script>
+<script src="/assets/tracker.js" defer></script>`;
+  return layout(ctx, { title: `Luxury Development Tracker: ${tracker.threshold} projects`, description: `A live map of ultra-luxury developments over ${tracker.threshold.replace('+', '')} worldwide: developer, value and status of each, with sources.`, path: '/tracker/', body, schema, active: '/tracker/', extraHead });
+}
+
+const FAQ = [
+  ['What counts as a project on this tracker?', 'A publicly announced residential development with a reported construction cost, construction loan or total project value of $250M or more, in a recognized ultra-luxury market.'],
+  ['How is the data checked?', 'Every figure comes from a named, dated source: trade press reporting a loan or contract, a public filing, or a developer announcement. The source is linked on each project. Figures are never estimated or rounded up to meet the threshold.'],
+  ['How often is it updated?', 'New projects are added as soon as a $250M+ figure is confirmed by a public source. Each addition is checked by hand before it goes live.'],
+  ['Why do some figures say “reported” or give a range?', 'When sources disagree, the tracker shows the range or the most credible figure and says so, rather than picking a number that looks precise.'],
+];
+
+export function aboutPage(ctx) {
+  const { config } = ctx;
+  const body = `
+<section class="page-head">
+  <div class="wrap about">
+    <img class="about__portrait" src="${esc(config.host.portrait)}" alt="Mario Comando" width="320" height="320">
+    <div>
+      <h1>Mario Comando</h1>
+      <p class="lede">Host of TheRealFlow. Co-founder of <a href="${esc(config.host.companyUrl)}" target="_blank" rel="noopener">${esc(config.host.company)}</a>.</p>
+      <div class="prose">
+        <p>There’s something weird about how real estate works. A buyer sees a project they love, but there’s this voice in their head saying “but is it real?” Most developers ignore that voice and make the dream sound better. I think that’s backwards.</p>
+        <p>I built SuitesFlow to let buyers answer that question themselves. Not through brochures. Through certainty. Turns out that works better than any pitch.</p>
+        <p>TheRealFlow is where I explain the rest of the game: how presales are priced, why early buyers profit, how a contract gets assigned, and why developers who show buyers the truth sell faster. One idea per video, every day.</p>
+      </div>
+      <div class="actions">
+        ${btn(config.host.linkedin, 'Connect on LinkedIn', { ext: true, icon: 'linkedin' })}
+        ${btn('/podcast/', 'Listen to the podcast', { variant: 'ghost' })}
+      </div>
+    </div>
+  </div>
+</section>
+<section class="band band--follow">
+  <div class="wrap">
+    <h2 class="h-section">Follow along</h2>
+    ${channelLinks(config)}
+  </div>
+</section>`;
+  return layout(ctx, { title: 'About Mario Comando', description: 'Mario Comando hosts TheRealFlow and co-founded SuitesFlow. Two decades working with real estate developers.', path: '/about/', body, active: '/about/' });
+}
+
+export function notFound(ctx) {
+  const body = `
+<section class="page-head">
+  <div class="wrap narrow">
+    <h1>This page does not exist.</h1>
+    <p class="lede">The link may be old. The newest videos and episodes are on the home page.</p>
+    <div class="actions">${btn('/', 'Go to the home page')}</div>
+  </div>
+</section>`;
+  return layout(ctx, { title: 'Page not found', path: '/404.html', body });
+}

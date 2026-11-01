@@ -1,0 +1,26 @@
+{
+  "siteUrl": "https://therealflow.tv",
+  "siteName": "TheRealFlow",
+  "tagline": "Where developers and buyers meet",
+  "description": "Off-plan real estate explained in one minute or less, from every side of the deal. Short videos and a weekday podcast by Mario Comando.",
+  "host": {
+    "name": "Mario Comando",
+    "firstName": "Mario",
+    "portrait": "https://website-files.suitesflow.realestate/2026/03/7020e87d-mario-comando.png",
+    "linkedin": "https://www.linkedin.com/in/mario-comando/",
+    "company": "SuitesFlow",
+    "companyUrl": "https://suitesflow.realestate"
+  },
+  "feeds": {
+    "podcastRss": "https://anchor.fm/s/f510a66c/podcast/rss",
+    "youtubeChannelId": "UCCCBYWierDAsIR4Tk4j0ZTQ"
+  },
+  "links": {
+    "youtube": "https://www.youtube.com/@TheRealFlow-tv",
+    "tiktok": "https://www.tiktok.com/@therealflow.tv",
+    "facebook": "https://www.facebook.com/therealflow.tv",
+    "spotify": "https://open.spotify.com/show/27t7z4UXnBweMevWDGJzbP",
+    "apple": "",
+    "linkedin": "https://www.linkedin.com/in/mario-comando/"
+  }
+}
