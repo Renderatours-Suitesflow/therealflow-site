@@ -6,7 +6,7 @@ from faster_whisper import WhisperModel
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'data', 'transcripts', 'podcast')
-MAX = int(os.environ.get('MAX_TRANSCRIBE', '4'))
+MAX = int(os.environ.get('MAX_TRANSCRIBE', '8'))
 os.makedirs(OUT, exist_ok=True)
 
 episodes = json.load(open(os.path.join(ROOT, 'data', 'episodes.json')))

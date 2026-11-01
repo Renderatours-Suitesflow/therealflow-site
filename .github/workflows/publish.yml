@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 25
         run: |
-          pip install --quiet faster-whisper==1.1.1
+          pip install --quiet faster-whisper==1.1.1 requests
           python scripts/transcribe.py
       - name: Save new episodes and videos to the archive
         run: |
