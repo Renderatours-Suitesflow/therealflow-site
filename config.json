@@ -27,5 +27,8 @@
   "verification": {
     "google": "",
     "bing": ""
+  },
+  "analytics": {
+    "ga4": ""
   }
 }

@@ -93,6 +93,8 @@ ${modified ? `<meta property="article:modified_time" content="${esc(modified)}">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css">
+${config.analytics?.ga4 ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(config.analytics.ga4)}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${esc(config.analytics.ga4)}');</script>` : ''}
 ${extraHead}
 ${[baseSchema, ...(crumbs.length ? [breadcrumbSchema(config, crumbs)] : []), ...schema].map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')}
 </head>
