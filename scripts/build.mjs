@@ -338,11 +338,11 @@ Key facts:
 - [Videos](${abs('/videos/')}): one-minute explainers
 - [About Mario Comando](${abs('/about/')})
 
-## Podcast episodes
-${episodes.map((e) => `- [${e.title}](${abs(`/podcast/${e.slug}/`)}): ${excerpt(e.notes, 160)}`).join('\n')}
+## Podcast episodes (each page has a full article)
+${episodes.map((e) => `- [${e.article?.title || e.title}](${abs(`/podcast/${e.slug}/`)}): ${e.article?.answer || excerpt(e.notes, 160)}`).join('\n')}
 
 ## Videos
-${videos.slice(0, 60).map((v) => `- [${v.title}](${abs(`/videos/${v.slug}/`)})`).join('\n')}
+${videos.slice(0, 80).map((v) => `- [${v.article?.title || v.title}](${abs(`/videos/${v.slug}/`)})${v.article ? `: ${v.article.answer}` : ''}`).join('\n')}
 
 ## Tracker projects
 ${tracker.projects.map((p) => `- [${p.name}](${abs(`/tracker/${p.slug}/`)}): ${p.location}; ${p.value}; ${p.status}`).join('\n')}
@@ -352,6 +352,8 @@ ${tracker.projects.map((p) => `- [${p.name}](${abs(`/tracker/${p.slug}/`)}): ${p
 `);
 
 const { HOME_FAQ, GLOSSARY } = await import('./content.mjs');
+const artFull = (a) => `${a.answer}\n\n${a.body}${a.takeaways?.length ? `\n\nKey takeaways:\n${a.takeaways.map((t) => `- ${t}`).join('\n')}` : ''}${a.faq?.length ? `\n\n${a.faq.map(([q, x]) => `Q: ${q}\nA: ${x}`).join('\n\n')}` : ''}`;
+
 await page('llms-full.txt', `# TheRealFlow — full text
 
 ${config.description}
@@ -366,10 +368,10 @@ ${GLOSSARY.map(([t, d]) => `### ${t}\n${d}`).join('\n\n')}
 ${tracker.projects.map((p) => `### ${p.name}\n${['location', 'developer', 'value', 'status', 'units', 'floors', 'startingPrice', 'unitSize', 'completion'].filter((k) => p[k]).map((k) => `- ${k}: ${p[k]}`).join('\n')}\n- source: ${p.sourceUrl}\n- page: ${abs(`/tracker/${p.slug}/`)}`).join('\n\n')}
 
 ## Podcast episodes
-${episodes.map((e) => `### ${e.title}\nPublished ${e.date.slice(0, 10)}. ${abs(`/podcast/${e.slug}/`)}\n\n${plain(e.notes)}`).join('\n\n')}
+${episodes.map((e) => `### ${e.article?.title || e.title}\nPodcast episode, published ${e.date.slice(0, 10)}. ${abs(`/podcast/${e.slug}/`)}\n\n${e.article ? artFull(e.article) : plain(e.notes)}`).join('\n\n')}
 
 ## Videos
-${videos.map((v) => `### ${v.title}\n${abs(`/videos/${v.slug}/`)}${v.description ? `\n\n${v.description}` : ''}`).join('\n\n')}
+${videos.map((v) => `### ${v.article?.title || v.title}\nVideo. ${abs(`/videos/${v.slug}/`)}${v.article ? `\n\n${artFull(v.article)}` : v.description ? `\n\n${v.description}` : ''}`).join('\n\n')}
 `);
 
 // RSS feed of everything new on the site
