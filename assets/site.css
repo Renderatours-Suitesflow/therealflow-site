@@ -96,7 +96,7 @@ p { margin: 0 0 1em; }
 .vcard--large { color: var(--paper); }
 .vcard--large .vcard__media { border-radius: 0; }
 .vcard--large .vcard__title, .vcard--large .vcard__date { display: none; }
-.rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 1fr); gap: 20px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; }
+.rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 210px); gap: 20px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; }
 .rail > * { scroll-snap-align: start; }
 .vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 36px 22px; }
 
