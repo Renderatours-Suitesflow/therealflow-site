@@ -133,6 +133,59 @@ async function loadEpisodes() {
   return { episodes, show };
 }
 
+// The channel feed is the clean source; the uploads-playlist feed is the same data by another URL.
+async function youtubeFromFeeds() {
+  const id = config.feeds.youtubeChannelId;
+  const urls = [
+    `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`,
+    `https://www.youtube.com/feeds/videos.xml?playlist_id=UU${id.slice(2)}`,
+  ];
+  let lastErr;
+  for (const url of urls) {
+    try {
+      const xml = parser.parse(await fetchText(url));
+      return asArray(xml.feed.entry).map((en) => {
+        const vid = text(en['yt:videoId']);
+        const link = asArray(en.link).map((l) => l['@href']).find(Boolean) || '';
+        return {
+          id: vid,
+          title: text(en.title).trim(),
+          date: new Date(text(en.published)).toISOString(),
+          description: text(en['media:group']?.['media:description']).trim(),
+          short: true,
+        };
+      });
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
+// Last resort: read the Shorts tab of the channel page. It gives ids and titles in newest-first
+// order but no dates, so a new video gets the time it was first seen.
+async function youtubeFromChannelPage() {
+  const html = await fetchText(config.links.youtube.replace(/\/$/, '') + '/shorts');
+  const seen = new Set();
+  const out = [];
+  const re = /"reelWatchEndpoint":\{"videoId":"([\w-]{11})"/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const vid = m[1];
+    if (seen.has(vid)) continue;
+    seen.add(vid);
+    // the title sits in the same lockup, just before the endpoint
+    const chunk = html.slice(Math.max(0, m.index - 4000), m.index);
+    const t = [...chunk.matchAll(/"primaryText":\{"content":"((?:[^"\\]|\\.)*)"/g)].pop()
+      || [...chunk.matchAll(/"accessibilityText":"((?:[^"\\]|\\.)*?), [\d.,KM]+ views/g)].pop();
+    const title = t ? JSON.parse(`"${t[1]}"`) : '';
+    out.push({ id: vid, title, short: true, dateGuessed: true });
+  }
+  if (!out.length) throw new Error('no Shorts found on the channel page');
+  const now = Date.now();
+  out.forEach((v, i) => { v.date = new Date(now - i * 60000).toISOString(); });
+  console.log(`YouTube channel page: ${out.length} Shorts`);
+  return out;
+}
+
 // ---------- YouTube ----------
 async function loadVideos() {
   const archiveFile = path.join(DATA, 'videos.json');
@@ -140,36 +193,21 @@ async function loadVideos() {
   let fresh = [];
   if (!OFFLINE) {
     try {
-      let xmlText;
-      try {
-        xmlText = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${config.feeds.youtubeChannelId}`);
-      } catch {
-        // Look the channel ID up from the channel page (handles a wrong or changed ID)
-        const html = await fetchText(config.links.youtube);
-        const id = (html.match(/"externalId":"(UC[\w-]{22})"/) || html.match(/channel_id=(UC[\w-]{22})/) || html.match(/"channelId":"(UC[\w-]{22})"/) || [])[1];
-        if (!id) throw new Error('could not find the YouTube channel ID on the channel page');
-        console.log(`YouTube channel ID found: ${id} (save it in config.json feeds.youtubeChannelId)`);
-        xmlText = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${id}`);
-      }
-      const xml = parser.parse(xmlText);
-      fresh = asArray(xml.feed.entry).map((en) => {
-        const id = text(en['yt:videoId']);
-        const link = asArray(en.link).map((l) => l['@href']).find(Boolean) || `https://www.youtube.com/watch?v=${id}`;
-        return {
-          id,
-          title: text(en.title).trim(),
-          date: new Date(text(en.published)).toISOString(),
-          description: text(en['media:group']?.['media:description']).trim(),
-          short: link.includes('/shorts/'),
-        };
-      });
+      fresh = await youtubeFromFeeds();
       console.log(`YouTube feed: ${fresh.length} videos`);
     } catch (e) {
-      console.warn(`YouTube feed not reachable, using the archive: ${e.message}`);
+      console.warn(`YouTube feed failed (${e.message}), reading the channel page instead`);
+      try { fresh = await youtubeFromChannelPage(); }
+      catch (e2) { console.warn(`YouTube channel page failed too, using the archive: ${e2.message}`); }
     }
   }
   const byId = new Map(archive.map((v) => [v.id, v]));
-  for (const v of fresh) byId.set(v.id, { ...byId.get(v.id), ...v });
+  for (const v of fresh) {
+    const old = byId.get(v.id);
+    // a guessed date never replaces a date we already have
+    if (old && v.dateGuessed) byId.set(v.id, { ...old, title: v.title || old.title });
+    else byId.set(v.id, { ...old, ...v });
+  }
   const videos = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
   await writeFile(archiveFile, JSON.stringify(videos, null, 2) + '\n');
   return videos;

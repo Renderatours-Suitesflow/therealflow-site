@@ -126,7 +126,7 @@ const videoCard = (v, { large = false } = {}) => `
     <span class="vcard__play">${ICONS.play}</span>
   </span>
   <span class="vcard__title">${esc(v.title)}</span>
-  <span class="vcard__date">${fmtShort(v.date)}</span>
+  ${v.dateGuessed ? '' : `<span class="vcard__date">${fmtShort(v.date)}</span>`}
 </a>`;
 
 const episodeRow = (ep, ctx) => `
@@ -165,7 +165,7 @@ export function home(ctx) {
     ${latestV ? `
     <figure class="phone">
       <div class="phone__screen">${videoCard(latestV, { large: true })}</div>
-      <figcaption>Newest video, ${fmtDate(latestV.date)}</figcaption>
+      <figcaption>${latestV.dateGuessed ? 'Newest video' : `Newest video, ${fmtDate(latestV.date)}`}</figcaption>
     </figure>` : ''}
   </div>
 </section>
