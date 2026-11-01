@@ -23,12 +23,15 @@ The YouTube id and the slug come from `data/videos.json` and `data/episodes.json
   "body": "Markdown. Sections with ## headings. Lists where they help.",
   "takeaways": ["4 to 5 one-sentence takeaways"],
   "faq": [["Question people actually search?", "Answer in 1 to 3 sentences."]],
+  "number": 43,
   "written": "YYYY-MM-DD",
   "source": "video transcript | podcast transcript"
 }
 ```
 
 ## Rules
+
+- **`number` (videos only).** The 3-digit production number from Mario's folder name (for example `043 - Fix the Doubt, Not the Price` → 43). The site orders videos by this number, newest production first. Leave it out for podcast clips.
 
 - **Derived, not copied.** Keep Mario's ideas, examples and numbers, in new wording. Never paste the transcript. Never add claims, figures or examples that are not in the source or are not common, safe knowledge.
 - **Answer first.** The `answer` must stand alone as a quotable answer. The first paragraph of the body sets up the problem in plain words.
