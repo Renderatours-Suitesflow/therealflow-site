@@ -245,7 +245,11 @@ async function loadVideos() {
   const all = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
   // the same video uploaded twice gets one page (the older upload)
   const seenTitle = new Map();
-  for (const v of all.slice().reverse()) { const k = slugify(v.title); if (!seenTitle.has(k)) seenTitle.set(k, v.id); }
+  const hasArticle = (v) => existsSync(path.join(ROOT, 'content/videos', `${v.id}.json`));
+  for (const v of all.slice().reverse()) {
+    const k = slugify(v.title);
+    if (!seenTitle.has(k) || (hasArticle(v) && !hasArticle(all.find((x) => x.id === seenTitle.get(k))))) seenTitle.set(k, v.id);
+  }
   const videos = all.filter((v) => !v.title || seenTitle.get(slugify(v.title)) === v.id);
   const used = new Set();
   for (const v of videos.slice().reverse()) {
