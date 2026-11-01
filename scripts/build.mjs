@@ -169,7 +169,8 @@ async function youtubeFromChannelPage() {
   // Each Short is one "shortsLockupViewModel" block holding its title and its videoId.
   const blocks = html.split('"shortsLockupViewModel"').slice(1);
   for (const b of blocks) {
-    const vid = (b.match(/"videoId":"([\w-]{11})"/) || [])[1];
+    // the block's own id: entityId first (most reliable), then its thumbnail, then any videoId
+    const vid = (b.match(/"entityId":"shorts-shelf-item-([\w-]{11})"/) || b.match(/i\.ytimg\.com\/vi\/([\w-]{11})\//) || b.match(/"videoId":"([\w-]{11})"/) || [])[1];
     if (!vid || seen.has(vid)) continue;
     seen.add(vid);
     const t = b.match(/"primaryText":\{"content":"((?:[^"\\]|\\.)*)"/)
@@ -177,6 +178,7 @@ async function youtubeFromChannelPage() {
     const title = t ? JSON.parse(`"${t[1]}"`).replace(/\s*#shorts\b/gi, '').trim() : '';
     out.push({ id: vid, title, short: true, dateGuessed: true });
   }
+  console.log(`Shorts page: ${blocks.length} blocks, ${(html.match(/shorts-shelf-item-/g) || []).length} entity ids`);
   if (!out.length) throw new Error('no Shorts found on the channel page');
   const now = Date.now();
   out.forEach((v, i) => { v.date = new Date(now - i * 60000).toISOString(); });
