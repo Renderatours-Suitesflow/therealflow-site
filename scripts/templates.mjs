@@ -100,7 +100,7 @@ ${[baseSchema, ...(crumbs.length ? [breadcrumbSchema(config, crumbs)] : []), ...
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="wrap site-head__in">
-    <a class="wordmark" href="/" aria-label="TheRealFlow home">The<b>Real</b>Flow</a>
+    <a class="logo" href="/"><img src="/assets/logo.png" alt="TheRealFlow" width="500" height="307"></a>
     <nav aria-label="Main">
       <ul>${nav.map(([h, l]) => `<li><a href="${h}"${active === h ? ' aria-current="page"' : ''}>${l}</a></li>`).join('')}</ul>
     </nav>
@@ -113,7 +113,7 @@ ${body}
 <footer class="site-foot">
   <div class="wrap site-foot__in">
     <div>
-      <a class="wordmark wordmark--foot" href="/">The<b>Real</b>Flow</a>
+      <a class="logo logo--foot" href="/"><img src="/assets/logo.png" alt="TheRealFlow" width="500" height="307" loading="lazy"></a>
       <p class="foot-tag">${esc(config.tagline)}.</p>
       <ul class="foot-nav">${nav.map(([h, l]) => `<li><a href="${h}">${l}</a></li>`).join('')}<li><a href="/feed.xml">RSS</a></li></ul>
     </div>
@@ -171,22 +171,18 @@ export function home(ctx) {
 <section class="hero">
   <div class="wrap hero__in">
     <div class="hero__copy">
-      <h1>How off-plan real estate really works.</h1>
-      <p class="lede">One-minute videos and a weekday podcast for developers, brokers, investors and buyers. From the vision to someone’s home.</p>
+      <p class="hero__hello">I’m Mario.</p>
+      <h1>How off&#8209;plan real estate really works.</h1>
+      <p class="lede">For 20 years I have worked next to the developers who sell homes before they exist. Here I explain that game from every side of the deal, one idea at a time.</p>
       <div class="actions">
         ${btn('/podcast/', 'Listen to the podcast')}
-        ${btn(config.links.tiktok, 'Follow on TikTok', { variant: 'ghost', ext: true, icon: 'tiktok' })}
+        ${btn('/videos/', 'Watch the videos', { variant: 'ghost', icon: 'play' })}
       </div>
-      <a class="host" href="/about/">
-        <img src="${esc(config.host.portrait)}" alt="" width="52" height="52">
-        <span>Hosted by <b>Mario</b>, who has spent 20 years working with real estate developers.</span>
-      </a>
+      <p class="hero__for">For developers, brokers, investors and buyers.</p>
     </div>
-    ${latestV ? `
-    <figure class="phone">
-      <div class="phone__screen">${videoCard(latestV, { large: true })}</div>
-      <figcaption>${latestV.dateGuessed ? 'Newest video' : `Newest video, ${fmtDate(latestV.date)}`}</figcaption>
-    </figure>` : ''}
+    <figure class="hero__mario">
+      <img src="/assets/mario-1100.webp" srcset="/assets/mario-720.webp 720w, /assets/mario-1100.webp 1100w" sizes="(max-width: 860px) 92vw, 560px" alt="Mario Comando, host of TheRealFlow" width="1100" height="1100" fetchpriority="high">
+    </figure>
   </div>
 </section>
 
@@ -213,14 +209,14 @@ ${latestE ? `
   </div>
 </section>` : ''}
 
-${videos.length > 1 ? `
+${videos.length ? `
 <section class="band">
   <div class="wrap">
     <div class="row-head">
       <h2 class="h-section">Watch in a minute</h2>
       <a class="text-link" href="/videos/">All videos</a>
     </div>
-    <div class="rail">${videos.slice(1, 9).map((v) => videoCard(v)).join('')}</div>
+    <div class="rail">${videos.slice(0, 8).map((v) => videoCard(v)).join('')}</div>
   </div>
 </section>` : ''}
 
@@ -236,8 +232,7 @@ ${videos.length > 1 ? `
 </section>
 
 <section class="band">
-  <div class="wrap about-strip">
-    <img src="${esc(config.host.portrait)}" alt="Mario Comando" width="220" height="220" loading="lazy">
+  <div class="wrap about-strip about-strip--text">
     <div>
       <h2 class="h-section">Who is Mario</h2>
       <p>Mario has spent two decades next to the developers who sell homes before they exist. TheRealFlow explains that world from every side of the deal, so developers sell with more certainty and buyers invest with open eyes.</p>
@@ -266,7 +261,7 @@ ${videos.length > 1 ? `
     { '@context': 'https://schema.org', '@type': 'Organization', '@id': config.siteUrl + '/#org', name: config.siteName, url: config.siteUrl + '/', logo: config.siteUrl + '/assets/favicon.svg', slogan: config.tagline, founder: { '@id': config.siteUrl + '/#mario' }, sameAs: Object.values(config.links).filter(Boolean) },
     faqSchema(HOME_FAQ),
   ];
-  return layout(ctx, { path: '/', body, active: '/', schema });
+  return layout(ctx, { path: '/', body, active: '/', schema, image: config.siteUrl + '/assets/og-home.jpg' });
 }
 
 export function videosPage(ctx) {

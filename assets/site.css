@@ -32,8 +32,9 @@ p { margin: 0 0 1em; }
 /* Header */
 .site-head { border-bottom: 1px solid var(--line); background: var(--paper); position: sticky; top: 0; z-index: 20; }
 .site-head__in { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 16px; }
-.wordmark { font: 500 1.7rem/1 var(--serif); text-decoration: none; letter-spacing: -0.01em; }
-.wordmark b { font-weight: 600; font-style: italic; color: var(--gold-text); }
+.logo { display: block; line-height: 0; }
+.logo img { height: 56px; width: auto; }
+.logo--foot img { height: 58px; }
 .site-head nav ul { list-style: none; display: flex; gap: 28px; margin: 0; padding: 0; }
 .site-head nav a { text-decoration: none; font-weight: 400; font-size: 0.98rem; padding: 6px 0; border-bottom: 1px solid transparent; }
 .site-head nav a:hover, .site-head nav a[aria-current="page"] { border-bottom-color: var(--gold); }
@@ -241,7 +242,7 @@ p { margin: 0 0 1em; }
 /* Footer */
 .site-foot { background: var(--cream); border-top: 1px solid var(--line); padding: 48px 0 28px; }
 .site-foot__in { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
-.wordmark--foot { font-size: 1.5rem; }
+
 .foot-tag { color: var(--muted); margin-top: 8px; }
 .foot-legal { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; color: var(--muted); font-size: 0.82rem; }
 .foot-legal p { margin: 0; max-width: 70ch; }
@@ -305,3 +306,22 @@ p { margin: 0 0 1em; }
 .term h2 { font-size: 1.9rem; }
 .term dd { margin: 10px 0 0; font-size: 1.1rem; color: var(--ink-2); max-width: 64ch; }
 .term:target h2 { color: var(--gold-text); }
+
+/* Home hero: Mario is the main character */
+.hero { padding: 40px 0 0; border-bottom: 1px solid var(--line); overflow: hidden; }
+.hero__in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: end; }
+.hero__copy { padding-bottom: 88px; align-self: center; }
+.hero__hello { font: italic 500 clamp(1.6rem, 2.6vw, 2.1rem)/1 var(--serif); color: var(--gold-text); margin: 0 0 14px; }
+.hero h1 { font-size: clamp(2.8rem, 5.8vw, 5.2rem); max-width: 11ch; }
+.hero__for { margin: 22px 0 0; color: var(--muted); font-size: 0.95rem; }
+.hero__mario { margin: 0; justify-self: end; width: min(600px, 100%); }
+.hero__mario img { width: 100%; height: auto; display: block; margin-bottom: -2px; mix-blend-mode: multiply; }
+.about-strip--text { grid-template-columns: 1fr; max-width: 760px; }
+@media (max-width: 860px) {
+  .hero { padding-top: 28px; }
+  .hero__in { grid-template-columns: 1fr; gap: 0; }
+  .hero__copy { padding-bottom: 8px; }
+  .hero__mario { justify-self: center; width: min(460px, 100%); }
+}
+@media (max-width: 640px) { .logo img { height: 46px; } }
+.hero__mario img { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%); }
