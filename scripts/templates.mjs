@@ -171,17 +171,19 @@ export function home(ctx) {
 <section class="hero">
   <div class="wrap hero__in">
     <div class="hero__copy">
-      <p class="hero__hello">I’m Mario.</p>
-      <h1>How off&#8209;plan real estate really works.</h1>
-      <p class="lede">For 20 years I have worked next to the developers who sell homes before they exist. Here I explain that game from every side of the deal, one idea at a time.</p>
+      <h1>Know the off&#8209;plan game before you play&nbsp;it.</h1>
+      <p class="lede">Selling a project or buying into one, you will understand how presales really work: the pricing, the risk, the profit, and what buyers need to see before they sign.</p>
       <div class="actions">
         ${btn('/podcast/', 'Listen to the podcast')}
         ${btn('/videos/', 'Watch the videos', { variant: 'ghost', icon: 'play' })}
       </div>
-      <p class="hero__for">For developers, brokers, investors and buyers.</p>
+      <a class="guide" href="/about/">
+        <span class="guide__name">Your guide: Mario Comando</span>
+        <span>20 years next to the developers who sell homes before they exist.</span>
+      </a>
     </div>
     <figure class="hero__mario">
-      <img src="/assets/mario-1100.webp" srcset="/assets/mario-720.webp 720w, /assets/mario-1100.webp 1100w" sizes="(max-width: 860px) 92vw, 560px" alt="Mario Comando, host of TheRealFlow" width="1100" height="1100" fetchpriority="high">
+      <img src="/assets/mario-960.webp" srcset="/assets/mario-600.webp 600w, /assets/mario-960.webp 960w" sizes="(max-width: 860px) 80vw, 480px" alt="Mario Comando, host of TheRealFlow" width="960" height="1309" fetchpriority="high">
     </figure>
   </div>
 </section>
