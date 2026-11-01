@@ -227,17 +227,20 @@ async function loadVideos() {
     const old = byId.get(v.id);
     // a guessed date never replaces a date we already have
     if (old && v.dateGuessed) byId.set(v.id, { ...old, title: v.title || old.title });
-    else byId.set(v.id, { ...old, ...v });
+    else if (!old && v.dateGuessed && archive.length) {
+      // a Short that appeared since the last run (runs are 2 hours apart): first-seen time is its publish time
+      byId.set(v.id, { ...v, date: new Date().toISOString(), dateGuessed: false, dateSource: 'first-seen' });
+    } else byId.set(v.id, { ...old, ...v });
   }
   if (!OFFLINE) {
     let n = 0;
     for (const v of byId.values()) {
-      if (v.detailed || n >= 40) continue;
+      if (v.detailed || (v.detailTries || 0) >= 2 || n >= 40) continue;
       n++;
       try { Object.assign(v, await videoDetails(v.id)); v.detailed = true; }
-      catch (e) { console.warn(`Details for ${v.id} not available: ${e.message}`); }
+      catch (e) { v.detailTries = (v.detailTries || 0) + 1; if (n === 1) console.warn(`Video details not available from YouTube: ${e.message}`); }
     }
-    if (n) console.log(`Video details fetched for ${n} videos`);
+    if (n) console.log(`Video details tried for ${n} videos`);
   }
   const videos = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
   const used = new Set();
