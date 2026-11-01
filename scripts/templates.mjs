@@ -1,4 +1,5 @@
 // HTML templates for therealflow.tv. Plain functions returning strings, no framework.
+import { HOME_FAQ, GLOSSARY } from './content.mjs';
 
 const esc = (s = '') => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -42,17 +43,20 @@ function channelLinks(config, { compact = false } = {}) {
     `<li><a href="${esc(href)}" target="_blank" rel="noopener" aria-label="TheRealFlow on ${name}">${ICONS[k]}<span>${name}</span></a></li>`).join('')}</ul>`;
 }
 
-function layout(ctx, { title, description, path = '/', body, schema = [], image, active = '', extraHead = '' }) {
+function layout(ctx, { title, description, path = '/', body, schema = [], image, active = '', extraHead = '', crumbs = [], ogType = 'website', published, modified }) {
   const { config } = ctx;
-  const fullTitle = title ? `${title} | ${config.siteName}` : `${config.siteName}: How off-plan real estate really works`;
+  const fullTitle = !title ? `${config.siteName}: How off-plan real estate really works` : title.length > 50 ? title : `${title} | ${config.siteName}`;
   const desc = description || config.description;
   const url = config.siteUrl + path;
   const ogImage = image || ctx.show?.image || config.host.portrait;
-  const nav = [['/videos/', 'Videos'], ['/podcast/', 'Podcast'], ['/tracker/', 'Tracker'], ['/about/', 'About']];
+  const nav = [['/videos/', 'Videos'], ['/podcast/', 'Podcast'], ['/tracker/', 'Tracker'], ['/glossary/', 'Glossary'], ['/about/', 'About']];
   const baseSchema = {
     '@context': 'https://schema.org',
     '@type': 'Person',
+    '@id': config.siteUrl + '/#mario',
     name: config.host.name,
+    description: 'Host of TheRealFlow and co-founder of SuitesFlow. Has worked with real estate developers for 20 years.',
+    knowsAbout: ['Off-plan real estate', 'Presale real estate', 'Contract assignment', 'Real estate development', 'Real estate visualization', 'Digital twins'],
     url: config.siteUrl + '/about/',
     image: config.host.portrait,
     jobTitle: 'Co-founder',
@@ -67,7 +71,13 @@ function layout(ctx, { title, description, path = '/', body, schema = [], image,
 <title>${esc(fullTitle)}</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(url)}">
-<meta property="og:type" content="website">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="author" content="${esc(config.host.name)}">
+${config.verification?.google ? `<meta name="google-site-verification" content="${esc(config.verification.google)}">` : ''}
+${config.verification?.bing ? `<meta name="msvalidate.01" content="${esc(config.verification.bing)}">` : ''}
+<meta property="og:type" content="${ogType}">
+${published ? `<meta property="article:published_time" content="${esc(published)}">` : ''}
+${modified ? `<meta property="article:modified_time" content="${esc(modified)}">` : ''}
 <meta property="og:site_name" content="${esc(config.siteName)}">
 <meta property="og:title" content="${esc(fullTitle)}">
 <meta property="og:description" content="${esc(desc)}">
@@ -76,12 +86,15 @@ function layout(ctx, { title, description, path = '/', body, schema = [], image,
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="TheRealFlow podcast" href="${esc(config.feeds.podcastRss)}">
+<link rel="alternate" type="application/rss+xml" title="TheRealFlow updates" href="${config.siteUrl}/feed.xml">
+<link rel="alternate" type="text/plain" title="LLM summary" href="${config.siteUrl}/llms.txt">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css">
 ${extraHead}
-${[baseSchema, ...schema].map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')}
+${[baseSchema, ...(crumbs.length ? [breadcrumbSchema(config, crumbs)] : []), ...schema].map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -94,6 +107,7 @@ ${[baseSchema, ...schema].map((s) => `<script type="application/ld+json">${JSON.
   </div>
 </header>
 <main id="main">
+${crumbs.length ? `<nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li>${crumbs.map(([h, l], i) => i === crumbs.length - 1 ? `<li aria-current="page">${esc(l)}</li>` : `<li><a href="${esc(h)}">${esc(l)}</a></li>`).join('')}</ol></nav>` : ''}
 ${body}
 </main>
 <footer class="site-foot">
@@ -101,6 +115,7 @@ ${body}
     <div>
       <a class="wordmark wordmark--foot" href="/">The<b>Real</b>Flow</a>
       <p class="foot-tag">${esc(config.tagline)}.</p>
+      <ul class="foot-nav">${nav.map(([h, l]) => `<li><a href="${h}">${l}</a></li>`).join('')}<li><a href="/feed.xml">RSS</a></li></ul>
     </div>
     ${channelLinks(config, { compact: true })}
   </div>
@@ -118,11 +133,16 @@ ${body}
 </html>`;
 }
 
+function breadcrumbSchema(config, crumbs) {
+  const items = [['/', 'Home'], ...crumbs];
+  return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items.map(([h, l], i) => ({ '@type': 'ListItem', position: i + 1, name: l, item: config.siteUrl + h })) };
+}
+
 // A vertical video card. Clicking opens the on-page player; the link still works without JS.
 const videoCard = (v, { large = false } = {}) => `
-<a class="vcard${large ? ' vcard--large' : ''}" href="${esc(ytUrl(v))}" data-video="${esc(v.id)}" target="_blank" rel="noopener">
+<a class="vcard${large ? ' vcard--large' : ''}" href="/videos/${esc(v.slug)}/" data-video="${esc(v.id)}">
   <span class="vcard__media">
-    <img src="${thumb(v.id)}" alt="" loading="lazy" width="480" height="360">
+    <img src="${thumb(v.id)}" alt="${esc(v.title)}" loading="${large ? 'eager' : 'lazy'}" width="480" height="360">
     <span class="vcard__play">${ICONS.play}</span>
   </span>
   <span class="vcard__title">${esc(v.title)}</span>
@@ -227,13 +247,26 @@ ${videos.length > 1 ? `
   </div>
 </section>
 
+<section class="band band--parchment">
+  <div class="wrap narrow">
+    <h2 class="h-section">Off-plan real estate, answered</h2>
+    <div class="faq">${HOME_FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>
+    <p class="faq-more">More terms explained in the <a class="text-link" href="/glossary/">off-plan glossary</a>.</p>
+  </div>
+</section>
+
 <section class="band band--follow">
   <div class="wrap">
     <h2 class="h-section">Follow along</h2>
     ${channelLinks(config)}
   </div>
 </section>`;
-  return layout(ctx, { path: '/', body, active: '/' });
+  const schema = [
+    { '@context': 'https://schema.org', '@type': 'WebSite', '@id': config.siteUrl + '/#website', name: config.siteName, url: config.siteUrl + '/', description: config.description, inLanguage: 'en', publisher: { '@id': config.siteUrl + '/#mario' } },
+    { '@context': 'https://schema.org', '@type': 'Organization', '@id': config.siteUrl + '/#org', name: config.siteName, url: config.siteUrl + '/', logo: config.siteUrl + '/assets/favicon.svg', slogan: config.tagline, founder: { '@id': config.siteUrl + '/#mario' }, sameAs: Object.values(config.links).filter(Boolean) },
+    faqSchema(HOME_FAQ),
+  ];
+  return layout(ctx, { path: '/', body, active: '/', schema });
 }
 
 export function videosPage(ctx) {
@@ -252,7 +285,7 @@ export function videosPage(ctx) {
       : `<p class="empty">The first videos appear here as soon as they are on YouTube.</p>`}
   </div>
 </section>`;
-  return layout(ctx, { title: 'Videos', description: 'Short videos on how off-plan and presale real estate works, for developers, brokers, investors and buyers.', path: '/videos/', body, active: '/videos/' });
+  return layout(ctx, { title: 'Videos', description: 'Short videos on how off-plan and presale real estate works, for developers, brokers, investors and buyers.', path: '/videos/', body, active: '/videos/', crumbs: [['/videos/', 'Videos']], schema: [itemList(ctx.config, videos.map((v) => ['/videos/' + v.slug + '/', v.title]))] });
 }
 
 export function podcastPage(ctx) {
@@ -282,7 +315,7 @@ export function podcastPage(ctx) {
       : `<p class="empty">Episodes appear here as soon as they are published.</p>`}
   </div>
 </section>`;
-  return layout(ctx, { title: 'Off-plan real estate podcast', description: show.description, path: '/podcast/', body, schema, active: '/podcast/' });
+  return layout(ctx, { title: 'Off-plan real estate podcast', description: ctx.excerpt(show.description || config.description, 155), path: '/podcast/', body, schema: [...schema, itemList(config, episodes.map((e) => ['/podcast/' + e.slug + '/', e.title]))], active: '/podcast/', crumbs: [['/podcast/', 'Podcast']] });
 }
 
 export function episodePage(ctx, ep) {
@@ -318,7 +351,7 @@ export function episodePage(ctx, ep) {
     ${more.length ? `<h2 class="h-small">More episodes</h2><ul class="eplist eplist--tight">${more.map((e) => episodeRow(e, ctx)).join('')}</ul>` : ''}
   </footer>
 </article>`;
-  return layout(ctx, { title: ep.title, description: desc, path: `/podcast/${ep.slug}/`, body, schema, image: ep.image, active: '/podcast/' });
+  return layout(ctx, { title: ep.title, description: desc, path: `/podcast/${ep.slug}/`, body, schema, image: ep.image, active: '/podcast/', crumbs: [['/podcast/', 'Podcast'], [`/podcast/${ep.slug}/`, ep.title]], ogType: 'article', published: ep.date });
 }
 
 export function trackerPage(ctx) {
@@ -329,14 +362,15 @@ export function trackerPage(ctx) {
   const schema = [{
     '@context': 'https://schema.org', '@type': 'Dataset', name: 'Luxury Development Tracker',
     description: `Ultra-luxury residential developments of ${tracker.threshold} worldwide, each with a dated public source.`,
-    url: config.siteUrl + '/tracker/', dateModified: tracker.updated, creator: { '@type': 'Person', name: config.host.name },
-  }, {
-    '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
-  }];
+    url: config.siteUrl + '/tracker/', dateModified: tracker.updated, creator: { '@id': config.siteUrl + '/#mario' }, license: 'https://creativecommons.org/licenses/by/4.0/', isAccessibleForFree: true,
+    keywords: ['luxury real estate', 'branded residences', 'off-plan', 'real estate development', 'construction loans'],
+    spatialCoverage: [...markets].join(', '),
+    distribution: [{ '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: config.siteUrl + '/assets/tracker-data.json' }],
+  }, faqSchema(FAQ)];
   const fields = [['developer', 'Developer'], ['value', 'Value'], ['status', 'Status'], ['units', 'Units'], ['floors', 'Floors'], ['startingPrice', 'Starting price'], ['unitSize', 'Unit size'], ['completion', 'Completion']];
   const card = (p) => `
 <li class="proj" data-region="${esc(p.region)}" data-market="${esc(p.market)}">
-  <h3>${esc(p.name)}</h3>
+  <h3><a href="/tracker/${esc(p.slug)}/">${esc(p.name)}</a></h3>
   <p class="proj__loc">${esc(p.location)}</p>
   <dl>${fields.filter(([k]) => p[k]).map(([k, l]) => `<div><dt>${l}</dt><dd>${k === 'developer' && p.developerUrl ? `<a href="${esc(p.developerUrl)}" target="_blank" rel="noopener">${esc(p.developer)}</a>` : esc(p[k])}</dd></div>`).join('')}</dl>
   <a class="text-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Read the source</a>
@@ -381,7 +415,7 @@ export function trackerPage(ctx) {
 <script src="/assets/vendor/d3.min.js" defer></script>
 <script src="/assets/vendor/topojson-client.min.js" defer></script>
 <script src="/assets/tracker.js" defer></script>`;
-  return layout(ctx, { title: `Luxury Development Tracker: ${tracker.threshold} projects`, description: `A live map of ultra-luxury developments over ${tracker.threshold.replace('+', '')} worldwide: developer, value and status of each, with sources.`, path: '/tracker/', body, schema, active: '/tracker/', extraHead });
+  return layout(ctx, { title: `Luxury Development Tracker: ${tracker.threshold} projects`, description: `A live map of ultra-luxury developments over ${tracker.threshold.replace('+', '')} worldwide: developer, value and status of each, with sources.`, path: '/tracker/', body, schema, active: '/tracker/', extraHead, crumbs: [['/tracker/', 'Luxury Development Tracker']] });
 }
 
 const FAQ = [
@@ -418,7 +452,7 @@ export function aboutPage(ctx) {
     ${channelLinks(config)}
   </div>
 </section>`;
-  return layout(ctx, { title: 'About Mario Comando', description: 'Mario Comando hosts TheRealFlow and co-founded SuitesFlow. Two decades working with real estate developers.', path: '/about/', body, active: '/about/' });
+  return layout(ctx, { title: 'About Mario Comando', description: 'Mario Comando hosts TheRealFlow and co-founded SuitesFlow. Two decades working with real estate developers.', path: '/about/', body, active: '/about/', crumbs: [['/about/', 'About']], schema: [{ '@context': 'https://schema.org', '@type': 'ProfilePage', mainEntity: { '@id': config.siteUrl + '/#mario' }, url: config.siteUrl + '/about/' }] });
 }
 
 export function notFound(ctx) {
@@ -431,4 +465,120 @@ export function notFound(ctx) {
   </div>
 </section>`;
   return layout(ctx, { title: 'Page not found', path: '/404.html', body });
+}
+
+
+// ---------- SEO helpers ----------
+function faqSchema(list) {
+  return { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: list.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
+}
+function itemList(config, items) {
+  return { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: items.slice(0, 100).map(([u, n], i) => ({ '@type': 'ListItem', position: i + 1, url: config.siteUrl + u, name: n })) };
+}
+const isoDur = (s) => `PT${Math.floor(s / 60)}M${s % 60}S`;
+
+// ---------- Video page ----------
+export function videoPage(ctx, v) {
+  const { config, videos, episodes } = ctx;
+  const i = videos.indexOf(v);
+  const more = videos.filter((x) => x !== v).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 6);
+  const desc = v.description ? ctx.excerpt(v.description, 155) : `${v.title}. A one-minute explainer on off-plan and presale real estate by Mario Comando.`;
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: v.description || desc,
+    thumbnailUrl: [`https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg`, thumb(v.id)], uploadDate: v.date,
+    duration: v.seconds ? isoDur(v.seconds) : undefined,
+    embedUrl: `https://www.youtube.com/embed/${v.id}`, contentUrl: ytUrl(v), url: `${config.siteUrl}/videos/${v.slug}/`,
+    author: { '@id': config.siteUrl + '/#mario' }, inLanguage: 'en',
+  }];
+  const body = `
+<article class="video-page">
+  <div class="wrap video-page__in">
+    <figure class="phone phone--page">
+      <div class="phone__screen">${videoCard(v, { large: true })}</div>
+    </figure>
+    <div class="video-page__copy">
+      <h1>${esc(v.title)}</h1>
+      ${v.dateGuessed ? '' : `<p class="meta"><time datetime="${v.date}">${fmtDate(v.date)}</time>${v.seconds ? `<span>${v.seconds} sec</span>` : ''}</p>`}
+      ${v.description ? `<div class="prose prose--video">${v.description.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>` : `<p class="lede">A one-minute explainer on how off-plan real estate works, from every side of the deal.</p>`}
+      <div class="actions">
+        ${btn(ytUrl(v), 'Watch on YouTube', { ext: true, icon: 'youtube' })}
+        ${btn(config.links.tiktok, 'Follow on TikTok', { variant: 'ghost', ext: true, icon: 'tiktok' })}
+      </div>
+      <div class="byline">
+        <img src="${esc(config.host.portrait)}" alt="" width="56" height="56" loading="lazy">
+        <p>By <a href="/about/">Mario Comando</a>, 20 years working with real estate developers.</p>
+      </div>
+    </div>
+  </div>
+  ${more.length ? `<div class="wrap video-more"><h2 class="h-section">More videos</h2><div class="rail">${more.map((x) => videoCard(x)).join('')}</div></div>` : ''}
+  ${episodes[0] ? `<div class="wrap narrow video-more"><h2 class="h-small">Latest podcast episodes</h2><ul class="eplist eplist--tight">${episodes.slice(0, 3).map((e) => episodeRow(e, ctx)).join('')}</ul></div>` : ''}
+</article>`;
+  return layout(ctx, { title: v.title, description: desc, path: `/videos/${v.slug}/`, body, schema, image: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`, active: '/videos/', crumbs: [['/videos/', 'Videos'], [`/videos/${v.slug}/`, v.title]], ogType: 'video.other', published: v.dateGuessed ? undefined : v.date });
+}
+
+// ---------- Tracker project page ----------
+export function projectPage(ctx, p) {
+  const { config, tracker } = ctx;
+  const others = tracker.projects.filter((x) => x !== p && x.market === p.market);
+  const nearby = others.length ? others : tracker.projects.filter((x) => x !== p && x.region === p.region).slice(0, 4);
+  const status = (p.status || '').toLowerCase();
+  const by = p.developer ? ` by ${p.developer}` : '';
+  const lead = `${p.name} is an ultra-luxury residential development in ${p.location}${by}, with a reported ${p.value}. Status: ${status}${p.completion ? `, with completion expected ${/^\d|^[QHM]/.test(p.completion) ? 'in ' : ''}${p.completion}` : ''}.`;
+  const fields = [['developer', 'Developer'], ['value', 'Reported value'], ['status', 'Status'], ['units', 'Units'], ['floors', 'Floors'], ['startingPrice', 'Starting price'], ['unitSize', 'Unit size'], ['completion', 'Completion']];
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'Residence', name: p.name, description: lead,
+    url: `${config.siteUrl}/tracker/${p.slug}/`,
+    address: { '@type': 'PostalAddress', addressLocality: p.location },
+    geo: p.lat != null ? { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lng } : undefined,
+    subjectOf: { '@type': 'NewsArticle', url: p.sourceUrl },
+  }];
+  const body = `
+<article class="project-page">
+  <header class="wrap narrow">
+    <h1>${esc(p.name)}</h1>
+    <p class="lede">${esc(lead)}</p>
+  </header>
+  <div class="wrap narrow">
+    <dl class="facts">${fields.filter(([k]) => p[k]).map(([k, l]) => `<div><dt>${l}</dt><dd>${k === 'developer' && p.developerUrl ? `<a href="${esc(p.developerUrl)}" target="_blank" rel="noopener">${esc(p.developer)}</a>` : esc(p[k])}</dd></div>`).join('')}
+      <div><dt>Market</dt><dd>${esc(p.market)}, ${esc(p.region)}</dd></div></dl>
+    <div class="actions">
+      ${btn(p.sourceUrl, 'Read the source', { ext: true })}
+      ${btn(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.location)}`, 'See it on the map', { variant: 'ghost', ext: true })}
+    </div>
+    <p class="quiet project-note">Figures come from the linked public source and are shown as reported. Tracker updated ${fmtDate(tracker.updated)}.</p>
+    ${nearby.length ? `<h2 class="h-small">${others.length ? `More ${tracker.threshold} projects in ${esc(p.market)}` : `More in ${esc(p.region)}`}</h2>
+    <ul class="mini-list">${nearby.map((x) => `<li><a href="/tracker/${esc(x.slug)}/">${esc(x.name)}</a><span>${esc(x.value)}</span></li>`).join('')}</ul>` : ''}
+    <p><a class="text-link" href="/tracker/">See all ${tracker.projects.length} projects on the map</a></p>
+  </div>
+</article>`;
+  return layout(ctx, { title: `${p.name}, ${p.market}`, description: lead.slice(0, 158), path: `/tracker/${p.slug}/`, body, schema, active: '/tracker/', crumbs: [['/tracker/', 'Luxury Development Tracker'], [`/tracker/${p.slug}/`, p.name]] });
+}
+
+// ---------- Glossary ----------
+export function glossaryPage(ctx) {
+  const { config } = ctx;
+  const slug = (t) => t.toLowerCase().replace(/\([^)]*\)/g, '').trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const schema = [{
+    '@context': 'https://schema.org', '@type': 'DefinedTermSet', '@id': config.siteUrl + '/glossary/#terms', name: 'Off-plan real estate glossary',
+    url: config.siteUrl + '/glossary/',
+    hasDefinedTerm: GLOSSARY.map(([t, d]) => ({ '@type': 'DefinedTerm', name: t, description: d, url: `${config.siteUrl}/glossary/#${slug(t)}`, inDefinedTermSet: config.siteUrl + '/glossary/#terms' })),
+  }, {
+    '@context': 'https://schema.org', '@type': 'WebPage', url: config.siteUrl + '/glossary/',
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.term dd'] },
+  }];
+  const body = `
+<section class="page-head">
+  <div class="wrap narrow">
+    <h1>Off-plan real estate glossary</h1>
+    <p class="lede">The words developers, brokers and investors use when they sell and buy homes before they exist, explained in plain English.</p>
+  </div>
+</section>
+<section class="band band--tight">
+  <div class="wrap narrow">
+    <nav class="toc" aria-label="Terms"><ul>${GLOSSARY.map(([t]) => `<li><a href="#${slug(t)}">${esc(t)}</a></li>`).join('')}</ul></nav>
+    <dl class="terms">${GLOSSARY.map(([t, d]) => `<div class="term" id="${slug(t)}"><dt><h2>${esc(t)}</h2></dt><dd>${esc(d)}</dd></div>`).join('')}</dl>
+    <p class="quiet">Have a term you want explained? Ask Mario on <a href="${esc(config.links.tiktok)}" target="_blank" rel="noopener">TikTok</a> and the answer may become the next video.</p>
+  </div>
+</section>`;
+  return layout(ctx, { title: 'Off-plan real estate glossary: presale terms explained', description: 'Plain-English definitions of off-plan and presale real estate terms: assignment, deposit structure, pre-absorption, risk curve, GDV and more.', path: '/glossary/', body, schema, active: '/glossary/', crumbs: [['/glossary/', 'Glossary']] });
 }

@@ -33,13 +33,16 @@ jobs:
         run: |
           git config user.name "therealflow-bot"
           git config user.email "therealflow-bot@users.noreply.github.com"
-          git add data/episodes.json data/videos.json data/show.json
+          git add data/episodes.json data/videos.json data/show.json data/indexed.json
           if git diff --cached --quiet; then
             echo "No new content."
           else
             git commit -m "Archive new episodes and videos [skip ci]"
             git push
           fi
+      - name: Announce new pages to search engines (IndexNow)
+        continue-on-error: true
+        run: node scripts/indexnow.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
