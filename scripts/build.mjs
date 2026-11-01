@@ -32,8 +32,13 @@ async function readJson(file, fallback) {
 }
 
 async function fetchText(url) {
+  const yt = url.includes('youtube.com');
   const res = await fetch(url, {
-    headers: { 'user-agent': 'therealflow.tv site builder' },
+    headers: yt ? {
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+      'accept-language': 'en-US,en;q=0.9',
+      cookie: 'CONSENT=YES+cb; SOCS=CAI',
+    } : { 'user-agent': 'therealflow.tv site builder' },
     signal: AbortSignal.timeout(30000),
   });
   if (!res.ok) throw new Error(`${url} answered ${res.status}`);
@@ -198,7 +203,7 @@ async function videoDetails(id) {
   if (desc) out.description = desc.replace(/(^|\s)#\w+/g, '').replace(/[ \t]+\n/g, '\n').trim();
   const secs = grab(/"lengthSeconds":"(\d+)"/);
   if (secs) out.seconds = Number(secs);
-  if (!out.date && !out.description) throw new Error('no details on the page');
+  if (!out.date && !out.description) throw new Error(`no details on the page (${html.length} bytes, title: ${(html.match(/<title>([^<]*)/) || [])[1] || 'none'})`);
   return out;
 }
 
