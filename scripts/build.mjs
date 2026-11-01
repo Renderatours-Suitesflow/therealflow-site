@@ -140,8 +140,18 @@ async function loadVideos() {
   let fresh = [];
   if (!OFFLINE) {
     try {
-      const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${config.feeds.youtubeChannelId}`;
-      const xml = parser.parse(await fetchText(url));
+      let xmlText;
+      try {
+        xmlText = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${config.feeds.youtubeChannelId}`);
+      } catch {
+        // Look the channel ID up from the channel page (handles a wrong or changed ID)
+        const html = await fetchText(config.links.youtube);
+        const id = (html.match(/"externalId":"(UC[\w-]{22})"/) || html.match(/channel_id=(UC[\w-]{22})/) || html.match(/"channelId":"(UC[\w-]{22})"/) || [])[1];
+        if (!id) throw new Error('could not find the YouTube channel ID on the channel page');
+        console.log(`YouTube channel ID found: ${id} (save it in config.json feeds.youtubeChannelId)`);
+        xmlText = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${id}`);
+      }
+      const xml = parser.parse(xmlText);
       fresh = asArray(xml.feed.entry).map((en) => {
         const id = text(en['yt:videoId']);
         const link = asArray(en.link).map((l) => l['@href']).find(Boolean) || `https://www.youtube.com/watch?v=${id}`;
