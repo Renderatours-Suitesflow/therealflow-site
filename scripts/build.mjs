@@ -291,7 +291,9 @@ videos.sort((a, b) => (a.number == null) !== (b.number == null) ? (a.number == n
 console.log(`Articles: ${videos.filter((v) => v.article).length} videos, ${episodes.filter((e) => e.article).length} episodes`);
 const ctx = { config, show, episodes, videos, tracker, excerpt, plain };
 
-await page('index.html', T.home(ctx));
+// The home page always leads with the newest upload, whatever its production number.
+const newestFirst = [...videos].sort((a, b) => b.date.localeCompare(a.date));
+await page('index.html', T.home({ ...ctx, videos: newestFirst }));
 await page('videos/index.html', T.videosPage(ctx));
 await page('podcast/index.html', T.podcastPage(ctx));
 for (const ep of episodes) await page(`podcast/${ep.slug}/index.html`, T.episodePage(ctx, ep));
