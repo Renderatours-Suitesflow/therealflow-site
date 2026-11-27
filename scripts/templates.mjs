@@ -162,6 +162,17 @@ const episodeRow = (ep, ctx) => `
   </a>
 </li>`;
 
+// The full episode on video. Shows the thumbnail first and loads YouTube only on click
+// (fast pages, no cookies until the visitor presses play). Without JS the link opens YouTube.
+const episodeVideo = (ep, { eager = false } = {}) => ep.video ? `
+<div class="epvideo">
+  <a class="epvideo__frame" href="https://www.youtube.com/watch?v=${esc(ep.video.id)}" data-embed="${esc(ep.video.id)}" target="_blank" rel="noopener" aria-label="Play the episode video: ${esc(ep.title)}">
+    <img src="https://i.ytimg.com/vi/${esc(ep.video.id)}/hqdefault.jpg" alt="${esc(ep.title)}" width="480" height="360" loading="${eager ? 'eager' : 'lazy'}">
+    <span class="epvideo__play">${ICONS.play}</span>
+    <span class="epvideo__label">Watch the episode${ep.duration ? ` · ${fmtDur(ep.duration)}` : ''}</span>
+  </a>
+</div>` : '';
+
 const audio = (ep) => ep.audio ? `<audio class="audio" controls preload="none" src="${esc(ep.audio)}"><a href="${esc(ep.audio)}">Download the episode</a></audio>` : '';
 
 // ---------- Pages ----------
@@ -309,6 +320,15 @@ export function podcastPage(ctx) {
     </div>
   </div>
 </section>
+${(() => { const f = episodes.find((e) => e.video); return f ? `
+<section class="band band--tight">
+  <div class="wrap narrow podcast-latest">
+    <h2 class="h-section">${f === episodes[0] ? 'Watch the latest episode' : 'Watch an episode'}</h2>
+    ${episodeVideo(f, { eager: true })}
+    <h3 class="podcast-latest__title"><a href="/podcast/${esc(f.slug)}/">${esc(f.title)}</a></h3>
+    <p class="podcast-latest__meta"><time datetime="${f.date}">${fmtDate(f.date)}</time></p>
+  </div>
+</section>` : ''; })()}
 <section class="band band--tight">
   <div class="wrap narrow">
     ${episodes.length ? `<ul class="eplist">${episodes.map((e) => episodeRow(e, ctx)).join('')}</ul>`
@@ -332,15 +352,23 @@ export function episodePage(ctx, ep) {
     associatedMedia: ep.audio ? { '@type': 'MediaObject', contentUrl: ep.audio } : undefined,
     partOfSeries: { '@type': 'PodcastSeries', name: 'TheRealFlow', url: config.siteUrl + '/podcast/' },
     author: { '@id': config.siteUrl + '/#mario' },
-  }, ...(art ? articleSchema(config, art, url, ep.date, ep.image) : [])];
+  }, ...(ep.video ? [{
+    '@context': 'https://schema.org', '@type': 'VideoObject', name: art?.title || ep.title, description: art?.answer || desc,
+    thumbnailUrl: `https://i.ytimg.com/vi/${ep.video.id}/hqdefault.jpg`, uploadDate: ep.video.date,
+    embedUrl: `https://www.youtube.com/embed/${ep.video.id}`, contentUrl: `https://www.youtube.com/watch?v=${ep.video.id}`,
+    duration: ep.duration ? `PT${Math.floor(ep.duration / 60)}M${ep.duration % 60}S` : undefined,
+  }] : []), ...(art ? articleSchema(config, art, url, ep.date, ep.image) : [])];
   const body = `
 <article class="episode">
   <header class="wrap narrow episode__head">
     <p class="kicker"><a href="/podcast/">TheRealFlow podcast</a></p>
     <h1>${esc(art?.title || ep.title)}</h1>
     <p class="meta"><time datetime="${ep.date}">${fmtDate(ep.date)}</time><span>${fmtDur(ep.duration)} listen</span>${art ? `<span>${readMins(art)} min read</span>` : ''}</p>
+    ${episodeVideo(ep, { eager: true })}
+    ${ep.video && ep.audio ? `<p class="epvideo__alt">Prefer to listen?</p>` : ''}
     ${audio(ep)}
     <div class="actions">
+      ${ep.video ? btn(`https://www.youtube.com/watch?v=${ep.video.id}`, 'Watch on YouTube', { variant: 'ghost', ext: true, icon: 'youtube' }) : ''}
       ${ep.spotify || config.links.spotify ? btn(ep.spotify || config.links.spotify, 'Open in Spotify', { variant: 'ghost', ext: true, icon: 'spotify' }) : ''}
     </div>
   </header>

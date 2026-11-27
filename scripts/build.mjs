@@ -289,6 +289,28 @@ for (const v of videos) v.number = v.article?.number ?? null;
 videos.sort((a, b) => (a.number == null) !== (b.number == null) ? (a.number == null ? -1 : 1)
   : a.number == null ? b.date.localeCompare(a.date) : b.number - a.number);
 console.log(`Articles: ${videos.filter((v) => v.article).length} videos, ${episodes.filter((e) => e.article).length} episodes`);
+// Every episode with a full video on YouTube gets the video player on its page.
+// Linked automatically when the YouTube title matches the podcast title
+// (a "| TheRealFlow Podcast Ep. 8" ending is ignored, previews are skipped);
+// data/podcast-videos.json fixes the few whose titles differ.
+{
+  const overrides = await readJson(path.join(DATA, 'podcast-videos.json'), {});
+  const allVideos = await readJson(path.join(DATA, 'videos.json'), []);
+  const norm = (t) => slugify(String(t || '').split(/\s+\|\s+/)[0]);
+  const full = allVideos.filter((v) => v.title && !/preview/i.test(v.title));
+  for (const e of episodes) {
+    const id = overrides[e.slug];
+    let v = id ? (allVideos.find((x) => x.id === id) || { id, title: e.title, date: e.date }) : null;
+    if (!v) {
+      const k = norm(e.title);
+      const hits = full.filter((x) => norm(x.title) === k);
+      // closest upload to the episode date wins
+      v = hits.sort((a, b) => Math.abs(new Date(a.date) - new Date(e.date)) - Math.abs(new Date(b.date) - new Date(e.date)))[0] || null;
+    }
+    e.video = v ? { id: v.id, title: v.title, date: v.dateGuessed ? e.date : v.date, seconds: v.seconds || e.duration || 0, description: v.description || '' } : null;
+  }
+  console.log(`Podcast video player: ${episodes.filter((e) => e.video).length} of ${episodes.length} episodes`);
+}
 const ctx = { config, show, episodes, videos, tracker, excerpt, plain };
 
 // The home page always leads with the newest upload, whatever its production number.
@@ -311,7 +333,7 @@ const urls = [
   ['/', latest, 'daily', '1.0'], ['/videos/', videos[0]?.date.slice(0, 10) || latest, 'daily', '0.9'],
   ['/podcast/', episodes[0]?.date.slice(0, 10) || latest, 'daily', '0.9'], ['/tracker/', tracker.updated, 'weekly', '0.9'],
   ['/glossary/', '2026-11-01', 'monthly', '0.8'], ['/about/', '2026-11-01', 'monthly', '0.6'],
-  ...episodes.map((e) => [`/podcast/${e.slug}/`, e.date.slice(0, 10), 'monthly', '0.8']),
+  ...episodes.map((e) => [`/podcast/${e.slug}/`, e.date.slice(0, 10), 'monthly', '0.8', e.video ? { ...e.video, title: e.title, description: e.video.description || plain(e.notes) } : undefined]),
   ...videos.map((v) => [`/videos/${v.slug}/`, v.date.slice(0, 10), 'monthly', '0.7', v]),
   ...tracker.projects.map((p) => [`/tracker/${p.slug}/`, tracker.updated, 'weekly', '0.7']),
 ];

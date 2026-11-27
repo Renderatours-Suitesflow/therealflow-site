@@ -350,3 +350,22 @@ p { margin: 0 0 1em; }
 .article-faq h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 8px; }
 .video-page .article { margin-top: 64px; }
 .episode .article { margin-top: 32px; }
+
+/* Podcast episode video player (16:9, loads YouTube on click) */
+.epvideo { margin-top: 22px; }
+.epvideo__frame { position: relative; display: block; aspect-ratio: 16 / 9; width: 100%; overflow: hidden; border-radius: var(--radius); background: var(--ink); box-shadow: 14px 14px 0 var(--parchment); color: var(--paper); text-decoration: none; }
+.epvideo__frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .3s; opacity: .92; }
+.epvideo__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.epvideo__play { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: rgba(255,255,255,.94); color: var(--ink); display: grid; place-items: center; transition: background .3s, transform .3s; }
+.epvideo__play svg { width: 30px; height: 30px; margin-left: 4px; }
+.epvideo__label { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 20px 16px; font: 400 0.95rem var(--sans); letter-spacing: .04em; background: linear-gradient(transparent, rgba(26,25,22,.85)); }
+.epvideo__frame:hover img, .epvideo__frame:focus-visible img { transform: scale(1.03); opacity: 1; }
+.epvideo__frame:hover .epvideo__play, .epvideo__frame:focus-visible .epvideo__play { background: var(--gold); transform: scale(1.06); }
+.epvideo__alt { margin: 28px 0 0; font-size: 0.95rem; color: var(--ink-2); }
+.epvideo__alt + .audio { margin-top: 6px; }
+.podcast-latest .h-section { margin-bottom: 4px; }
+.podcast-latest__title { font-size: clamp(1.5rem, 2.6vw, 2rem); margin: 30px 0 6px; }
+.podcast-latest__title a { text-decoration: none; }
+.podcast-latest__title a:hover { color: var(--gold-text); }
+.podcast-latest__meta { color: var(--ink-2); font-size: 0.95rem; margin: 0; }
+@media (max-width: 700px) { .epvideo__frame { box-shadow: 8px 8px 0 var(--parchment); } .epvideo__play { width: 60px; height: 60px; margin: -30px 0 0 -30px; } }

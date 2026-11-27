@@ -13,6 +13,17 @@
   const close = () => { if (!dlg) return; frame.innerHTML = ''; if (dlg.open) dlg.close(); };
 
   document.addEventListener('click', (e) => {
+    // podcast episode video: plays right in the page, 16:9
+    const ev = e.target.closest('[data-embed]');
+    if (ev) {
+      e.preventDefault();
+      const id = encodeURIComponent(ev.dataset.embed);
+      const box = ev.parentElement;
+      box.innerHTML = `<div class="epvideo__frame"><iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1&modestbranding=1" title="${(ev.getAttribute('aria-label') || 'Episode video').replace(/"/g, '&quot;')}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+      document.querySelectorAll('audio').forEach((a) => a.pause());
+      track('podcast_video_play', { video_id: ev.dataset.embed, episode_title: ev.querySelector('img')?.alt || '' });
+      return;
+    }
     const card = e.target.closest('[data-video]');
     if (card && dlg && typeof dlg.showModal === 'function') {
       e.preventDefault();
